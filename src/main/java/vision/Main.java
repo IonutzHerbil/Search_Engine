@@ -1,13 +1,13 @@
 package vision;
 
+import vision.config.IndexConfig;
 import vision.indexer.FileIndexer;
 
-import java.nio.file.Paths;
-
 public class Main {
-
     public static void main(String[] args) {
-        FileIndexer indexer = new FileIndexer(Paths.get(System.getProperty("user.home")));
+        IndexConfig config = IndexConfig.fromArgs(args);
+
+        FileIndexer indexer = new FileIndexer(config);
         indexer.index();
     }
 }
