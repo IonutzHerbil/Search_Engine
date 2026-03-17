@@ -1,11 +1,11 @@
 package vision.indexer;
 
+import vision.model.IndexReport;
 import vision.model.TraversalStats;
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.EnumSet;
 
 public class FileIndexer {
 
@@ -54,6 +54,6 @@ public class FileIndexer {
             System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
         }
 
-        stats.printReport();
-    }
+        IndexReport report = stats.toReport(rootDirectory.toString());
+        System.out.println("Finished indexing: " + report.filesFound() + " files in " + report.elapsedSeconds() + "s");    }
 }
