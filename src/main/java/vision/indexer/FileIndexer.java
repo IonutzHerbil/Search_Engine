@@ -1,22 +1,28 @@
 package vision.indexer;
 
 import vision.config.IndexConfig;
+import vision.model.FileRecord;
 import vision.model.IndexReport;
 import vision.model.TraversalStats;
+import vision.processor.ContentExtractor;
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 
 public class FileIndexer {
 
     private final IndexConfig config;
     private final FileFilter filter;
+    private final ContentExtractor extractor;
 
     public FileIndexer(IndexConfig config) {
         this.config = config;
         this.filter = new FileFilter(config);
+        this.extractor = new ContentExtractor();
     }
 
     public void index() {
@@ -24,12 +30,20 @@ public class FileIndexer {
         System.out.println("----------------------------------------");
 
         TraversalStats stats = new TraversalStats();
+        Set<Path> visitedRealPaths = new HashSet<>();
 
         try {
-            Files.walkFileTree(config.rootDirectory(), new SimpleFileVisitor<>() {
+            Files.walkFileTree(config.rootDirectory(), EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE,
+                    new SimpleFileVisitor<>() {
 
                         @Override
-                        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                            Path real = dir.toRealPath();
+                            if (!visitedRealPaths.add(real)) {
+                                stats.recordSkipped();
+                                return FileVisitResult.SKIP_SUBTREE;
+                            }
+
                             String name = dir.getFileName() != null ? dir.getFileName().toString() : "";
                             if (filter.shouldSkipDir(name)) {
                                 stats.recordSkipped();
@@ -48,8 +62,22 @@ public class FileIndexer {
                                 stats.recordSkipped();
                                 return FileVisitResult.CONTINUE;
                             }
-                            System.out.printf("[FILE] %s (%d bytes)%n", file, attrs.size());
-                            stats.recordFile();
+
+                            try {
+                                FileRecord record = extractor.extract(file, attrs);
+                                stats.recordFile();
+                                System.out.printf("[FILE] %s (%d bytes)%n", file, attrs.size());
+                                if (record.preview() != null && !record.preview().isBlank()) {
+                                    System.out.println("[Record]->" + record.name());
+                                    System.out.println(record.preview());
+                                    System.out.println("---");
+                                } else {
+                                    System.out.printf("%s (%d bytes) [Binary/No Preview]%n", record.name(), record.sizeBytes());
+                                }
+                            } catch (Exception e) {
+                                stats.recordError();
+                            }
+
                             return FileVisitResult.CONTINUE;
                         }
 
@@ -66,5 +94,11 @@ public class FileIndexer {
         }
 
         IndexReport report = stats.toReport(config.rootDirectory().toString());
-        System.out.println("Finished indexing: " + report.filesFound() + " files in " + report.elapsedSeconds() + "s");    }
+        System.out.println("========================================");
+        System.out.printf("Finished in %.2fs%n", report.elapsedSeconds());
+        System.out.printf("Files Indexed : %d%n", report.filesFound());
+        System.out.printf("Files Skipped : %d%n", report.skipped());
+        System.out.printf("Dirs Visited  : %d%n", report.directoriesVisited());
+        System.out.printf("Errors        : %d%n", report.errors());
+    }
 }
