@@ -25,10 +25,15 @@ public record IndexConfig(
     );
 
     private static final Set<String> DEFAULT_IGNORED_EXTS = Set.of(
+
             "exe", "dll", "so", "dylib", "o", "obj", "class", "jar",
             "zip", "tar", "gz", "rar", "7z",
-            "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg",
-            "mp3", "mp4", "avi", "mov", "mkv", "wav","dat","bak","blf","regtrans-ms","lnk","ini","log"
+            "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg", "webp",
+            "mp3", "mp4", "avi", "mov", "mkv", "wav",
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "fbx", "max", "uasset", "umap", "uproject", "blend",
+            "bin", "dmp", "ush", "usf", "pak",
+            "dat", "bak", "db", "sqlite","lnk","ini", "log", "tmp"
     );
 
     public static IndexConfig fromArgs(String[] args) {
