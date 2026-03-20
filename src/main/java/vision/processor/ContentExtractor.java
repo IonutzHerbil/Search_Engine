@@ -17,8 +17,7 @@ public class ContentExtractor {
     private static final Set<String> TEXT_EXTENSIONS = Set.of(
             "txt", "md", "java", "py", "js", "ts", "html", "css",
             "json", "xml", "csv", "sh", "bat", "c", "cpp", "h", "sql",
-            "log", "properties", "yml", "yaml","text","pdf","doc","docx",
-            "cs"
+            "log", "properties", "yml", "yaml","text","cs"
     );
 
     public FileRecord extract(Path file, BasicFileAttributes attrs) {
