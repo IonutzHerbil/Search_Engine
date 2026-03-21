@@ -152,7 +152,9 @@ classDiagram
     class FileIndexer {
         -IndexConfig config
         -DatabaseManager db
-        +FileIndexer(IndexConfig, DatabaseManager)
+        -FileFilter filter
+        -ContentExtractor extractor
+        +FileIndexer(IndexConfig, DatabaseManager, FileFilter, ContentExtractor)
         +index()
     }
 
