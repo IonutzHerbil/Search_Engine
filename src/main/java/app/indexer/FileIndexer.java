@@ -21,11 +21,11 @@ public class FileIndexer {
     private final ContentExtractor extractor;
     private final DatabaseManager dbManager;
 
-    public FileIndexer(IndexConfig config, DatabaseManager db ){
+    public FileIndexer(IndexConfig config, DatabaseManager db, FileFilter filter, ContentExtractor extractor) {
         this.config = config;
-        this.filter = new FileFilter(config);
-        this.extractor = new ContentExtractor();
-        this.dbManager=db;
+        this.dbManager = db;
+        this.filter = filter;
+        this.extractor = extractor;
     }
 
     public void index() {
