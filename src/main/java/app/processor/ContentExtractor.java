@@ -1,9 +1,8 @@
-package vision.processor;
+package app.processor;
 
-import vision.model.FileRecord;
+import app.model.FileRecord;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;

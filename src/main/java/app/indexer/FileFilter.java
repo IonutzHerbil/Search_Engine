@@ -1,6 +1,6 @@
-package vision.indexer;
+package app.indexer;
 
-import vision.config.IndexConfig;
+import app.config.IndexConfig;
 
 import java.util.List;
 import java.util.regex.Pattern;

@@ -1,4 +1,4 @@
-package vision.model;
+package app.model;
 
 public class TraversalStats {
 

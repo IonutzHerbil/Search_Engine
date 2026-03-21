@@ -1,10 +1,11 @@
-package vision.indexer;
+package app.indexer;
 
-import vision.config.IndexConfig;
-import vision.model.FileRecord;
-import vision.model.IndexReport;
-import vision.model.TraversalStats;
-import vision.processor.ContentExtractor;
+import app.config.IndexConfig;
+import app.db.DatabaseManager;
+import app.model.FileRecord;
+import app.model.IndexReport;
+import app.model.TraversalStats;
+import app.processor.ContentExtractor;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -18,11 +19,13 @@ public class FileIndexer {
     private final IndexConfig config;
     private final FileFilter filter;
     private final ContentExtractor extractor;
+    private final DatabaseManager dbManager;
 
-    public FileIndexer(IndexConfig config) {
+    public FileIndexer(IndexConfig config, DatabaseManager db ){
         this.config = config;
         this.filter = new FileFilter(config);
         this.extractor = new ContentExtractor();
+        this.dbManager=db;
     }
 
     public void index() {
@@ -64,16 +67,18 @@ public class FileIndexer {
                             }
 
                             try {
-                                FileRecord record = extractor.extract(file, attrs);
-                                stats.recordFile();
-                                System.out.printf("[FILE] %s (%d bytes)%n", file, attrs.size());
-                                if (record.preview() != null && !record.preview().isBlank()) {
-                                    System.out.println("[Record]->" + record.name());
-                                    System.out.println(record.preview());
-                                    System.out.println("---");
-                                } else {
-                                    System.out.printf("%s (%d bytes) [Binary/No Preview]%n", record.name(), record.sizeBytes());
+                                String absolutePath=file.toAbsolutePath().toString();
+                                long fileModifiedTime=attrs.lastModifiedTime().toMillis();
+
+                                if(fileModifiedTime == dbManager.getLastModified(absolutePath)){
+                                    stats.recordSkipped();
+                                    return FileVisitResult.CONTINUE;
                                 }
+
+                                FileRecord record = extractor.extract(file, attrs);
+                                dbManager.upsert(record);
+                                stats.recordFile();
+                                System.out.println("[SAVED] " + record.name());
                             } catch (Exception e) {
                                 stats.recordError();
                             }
