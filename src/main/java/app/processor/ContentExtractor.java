@@ -1,36 +1,29 @@
 package app.processor;
 
 import app.model.FileRecord;
+import app.util.FileTypes;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ContentExtractor {
 
     private static final int PREVIEW_LINES = 3;
 
-    private static final Set<String> TEXT_EXTENSIONS = Set.of(
-            "txt", "md", "java", "py", "js", "ts", "html", "css",
-            "json", "xml", "csv", "sh", "bat", "c", "cpp", "h", "sql",
-            "log", "properties", "yml", "yaml","text","cs"
-    );
-
     public FileRecord extract(Path file, BasicFileAttributes attrs) {
-        String name = file.getFileName().toString();
-        String ext = parseExtension(name);
+        String name    = file.getFileName().toString();
+        String ext     = parseExtension(name);
         String preview = null;
         String content = null;
 
-        if (isTextFile(ext, attrs.size())) {
+        if (FileTypes.isText(ext)) {
             try {
                 content = Files.readString(file);
                 preview = extractPreview(content);
-            } catch (IOException ignored) {
-            }
+            } catch (IOException ignored) {}
         }
 
         return new FileRecord(
@@ -42,10 +35,6 @@ public class ContentExtractor {
                 preview,
                 content
         );
-    }
-
-    private boolean isTextFile(String ext, long size) {
-        return TEXT_EXTENSIONS.contains(ext.toLowerCase());
     }
 
     private String parseExtension(String name) {
