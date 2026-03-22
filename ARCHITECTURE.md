@@ -85,33 +85,46 @@ graph TD
     subgraph Core["search-engine.jar"]
         Config["IndexConfig\nconfiguration"]
         Filter["FileFilter\nskip rules"]
+        FileTypes["FileTypes\nextension check"]
         Extractor["ContentExtractor\ntext reader"]
         Indexer["FileIndexer\ntraversal + pipeline"]
+        Repo["FileRepository\nSQL queries"]
+        DBConn["Database\nconnection + schema"]
+        Parser["SearchRequestParser\nquery parsing"]
         Search["SearchEngine\nquery + ranking"]
-        DBMgr["DatabaseManager\nSQL layer"]
+        CLIClass["CLI\nterminal interface"]
         GUICtrl["SearchController\nJavaFX controller"]
     end
 
     Config --> Indexer
     Filter --> Indexer
+    FileTypes --> Extractor
     Extractor --> Indexer
     Indexer -->|"walkFileTree"| FS
-    Indexer -->|"upsert"| DBMgr
-    Search -->|"FTS5 MATCH query"| DBMgr
-    DBMgr --> DB
-    GUICtrl --> Search
-    GUICtrl --> Indexer
+    Indexer -->|"upsert / getLastModified"| Repo
+    Repo --> DBConn
+    DBConn --> DB
+    Parser --> Search
+    Repo --> Search
+    Search --> CLIClass
+    Indexer --> CLIClass
+    Search --> GUICtrl
+    Indexer --> GUICtrl
 ```
 
 | Component | Package | Responsibility |
 |-----------|---------|----------------|
 | **IndexConfig** | `app.config` | Immutable record — root path, ignore patterns, db path, report format. Built from CLI args |
 | **FileFilter** | `app.indexer` | Regex patterns compiled once at startup, tested against every directory name and file extension |
+| **FileTypes** | `app.util` | Single source of truth for which extensions are treated as readable text |
 | **ContentExtractor** | `app.processor` | Reads UTF-8 text files, returns full content and a 3-line preview. Binary files get null |
 | **FileIndexer** | `app.indexer` | Drives the traversal. `FileFilter` and `ContentExtractor` injected. Skips unchanged files by comparing timestamps |
-| **DatabaseManager** | `app.db` | Owns the connection. Creates schema on first run. Exposes `getLastModified`, `upsert`, `search` |
-| **SearchEngine** | `app.search` | Sanitises query, fires a `MATCH` against FTS5, returns results ordered by BM25 rank |
-| **SearchController** | `app.gui` | JavaFX controller. Handles user input from the GUI, delegates to `SearchEngine` and `FileIndexer` |
+| **Database** | `app.db` | Owns the SQLite connection and creates the schema on first run |
+| **FileRepository** | `app.db` | All file-related SQL — `getLastModified`, `upsert`, `search` |
+| **SearchRequestParser** | `app.search` | Parses raw input into a `SearchRequest`, extracts `ext:` filters |
+| **SearchEngine** | `app.search` | Delegates to `SearchRequestParser`, calls `FileRepository`, returns BM25-ranked results |
+| **CLI** | `app.cli` | Runs the interactive search loop, formats and prints results |
+| **SearchController** | `app.gui` | JavaFX controller — handles search bar input, result selection, and preview display |
 
 ---
 
@@ -126,6 +139,10 @@ classDiagram
         +String dbPath
         +String reportFormat
         +fromArgs(String[] args)$ IndexConfig
+    }
+
+    class FileTypes {
+        +isText(String extension)$ boolean
     }
 
     class FileRecord {
@@ -151,10 +168,10 @@ classDiagram
 
     class FileIndexer {
         -IndexConfig config
-        -DatabaseManager db
+        -FileRepository repository
         -FileFilter filter
         -ContentExtractor extractor
-        +FileIndexer(IndexConfig, DatabaseManager, FileFilter, ContentExtractor)
+        +FileIndexer(IndexConfig, FileRepository, FileFilter, ContentExtractor)
         +index()
     }
 
@@ -179,13 +196,44 @@ classDiagram
         +double elapsedSeconds
     }
 
-    class DatabaseManager {
+    class Database {
         -Connection connection
-        +DatabaseManager(String dbPath)
+        +Database(String dbPath)
+        +getConnection() Connection
+        +close()
+    }
+
+    class FileRepository {
+        -Connection connection
+        +FileRepository(Database db)
         +getLastModified(String path) long
         +upsert(FileRecord record)
-        +search(String query, int limit) List~SearchResult~
-        +close()
+        +search(String query, String extension, int limit) List~SearchResult~
+    }
+
+    class SearchScope {
+        <<enumeration>>
+        ALL
+        BY_EXTENSION
+    }
+
+    class SearchRequest {
+        +String terms
+        +SearchScope scope
+        +String extension
+    }
+
+    class SearchRequestParser {
+        +parse(String raw) SearchRequest
+    }
+
+    class SearchEngine {
+        -FileRepository repository
+        -SearchRequestParser parser
+        -int DEFAULT_LIMIT
+        +SearchEngine(FileRepository repository)
+        +search(String raw) List~SearchResult~
+        +search(String raw, int limit) List~SearchResult~
     }
 
     class SearchResult {
@@ -197,13 +245,11 @@ classDiagram
         +long lastModified
     }
 
-    class SearchEngine {
-        -DatabaseManager db
-        -int DEFAULT_LIMIT
-        +SearchEngine(DatabaseManager db)
-        +search(String query) List~SearchResult~
-        +search(String query, int limit) List~SearchResult~
-        -sanitize(String query) String
+    class CLI {
+        -FileIndexer indexer
+        -SearchEngine engine
+        +CLI(FileIndexer indexer, SearchEngine engine)
+        +run()
     }
 
     class MainApp {
@@ -230,14 +276,21 @@ classDiagram
 
     FileIndexer --> FileFilter
     FileIndexer --> ContentExtractor
-    FileIndexer --> DatabaseManager
+    FileIndexer --> FileRepository
     FileIndexer ..> FileRecord
     FileIndexer ..> TraversalStats
     TraversalStats ..> IndexReport
     ContentExtractor ..> FileRecord
-    DatabaseManager ..> SearchResult
-    SearchEngine --> DatabaseManager
+    ContentExtractor --> FileTypes
+    FileRepository --> Database
+    FileRepository ..> SearchResult
+    SearchEngine --> FileRepository
+    SearchEngine --> SearchRequestParser
+    SearchRequestParser ..> SearchRequest
+    SearchRequest --> SearchScope
     SearchEngine ..> SearchResult
+    CLI --> FileIndexer
+    CLI --> SearchEngine
     MainApp --> SearchController
     SearchController --> SearchEngine
     SearchController --> FileIndexer
@@ -256,8 +309,8 @@ and result count.
 ### Indexing
 
 `FileIndexer` walks the tree. Each file is checked against `FileFilter` first, then
-against the stored timestamp. Only new or modified files get extracted and written
-to the index.
+against the stored timestamp via `FileRepository`. Only new or modified files get
+extracted and written to the index.
 
 ```mermaid
 sequenceDiagram
@@ -265,34 +318,38 @@ sequenceDiagram
     participant FileIndexer
     participant FileFilter
     participant ContentExtractor
-    participant DatabaseManager
+    participant FileRepository
 
     User->>FileIndexer: index()
     FileIndexer->>FileFilter: shouldSkip(file)?
     FileFilter-->>FileIndexer: skip / continue
-    FileIndexer->>DatabaseManager: getLastModified(path)
-    DatabaseManager-->>FileIndexer: timestamp or -1
+    FileIndexer->>FileRepository: getLastModified(path)
+    FileRepository-->>FileIndexer: timestamp or -1
     Note over FileIndexer: if unchanged — skip
     FileIndexer->>ContentExtractor: extract(file)
     ContentExtractor-->>FileIndexer: FileRecord
-    FileIndexer->>DatabaseManager: upsert(record)
+    FileIndexer->>FileRepository: upsert(record)
     FileIndexer->>User: prints IndexReport
 ```
 
 ### Search
 
-Query goes into `SearchEngine`, gets sanitised, hits the FTS5 index, comes back
-ranked by BM25. Both CLI and GUI go through the same path.
+Raw input goes into `SearchEngine`, `SearchRequestParser` breaks it into terms and
+an optional extension filter, `FileRepository` runs the FTS5 query, results come
+back ranked by BM25.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant SearchEngine
-    participant DatabaseManager
+    participant SearchRequestParser
+    participant FileRepository
 
-    User->>SearchEngine: search(query)
-    SearchEngine->>DatabaseManager: FTS5 MATCH query
-    DatabaseManager-->>SearchEngine: ranked results
+    User->>SearchEngine: search(raw)
+    SearchEngine->>SearchRequestParser: parse(raw)
+    SearchRequestParser-->>SearchEngine: SearchRequest
+    SearchEngine->>FileRepository: search(terms, extension, limit)
+    FileRepository-->>SearchEngine: ranked results
     SearchEngine->>User: name, path, snippet per result
 ```
 
