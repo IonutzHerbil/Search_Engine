@@ -1,7 +1,8 @@
 package app;
 
 import app.config.IndexConfig;
-import app.db.DatabaseManager;
+import app.db.Database;
+import app.db.FileRepository;
 import app.indexer.FileFilter;
 import app.indexer.FileIndexer;
 import app.processor.ContentExtractor;
@@ -11,16 +12,19 @@ import java.sql.SQLException;
 public class Main {
 
     public static void main(String[] args) {
-        IndexConfig config = IndexConfig.fromArgs(args);
+        IndexConfig    config     = IndexConfig.fromArgs(args);
         try {
-            DatabaseManager db = new DatabaseManager(config.dbPath());
-            FileFilter filter = new FileFilter(config);
+            Database       db         = new Database(config.dbPath());
+            FileRepository repository = new FileRepository(db);
+            FileFilter     filter     = new FileFilter(config);
             ContentExtractor extractor = new ContentExtractor();
-            FileIndexer indexer = new FileIndexer(config, db, filter, extractor);
-            new FileIndexer(config, db, filter,extractor).index();
+            FileIndexer    indexer    = new FileIndexer(config, repository, filter, extractor);
+
+            indexer.index();
+
             db.close();
         } catch (SQLException e) {
-            System.err.println("[FATAL] Cannot open database: " + e.getMessage());
+            System.err.println("[FATAL] " + e.getMessage());
         }
     }
 }

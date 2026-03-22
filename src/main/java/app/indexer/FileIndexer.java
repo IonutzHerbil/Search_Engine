@@ -1,7 +1,7 @@
 package app.indexer;
 
 import app.config.IndexConfig;
-import app.db.DatabaseManager;
+import app.db.FileRepository;
 import app.model.FileRecord;
 import app.model.IndexReport;
 import app.model.TraversalStats;
@@ -19,13 +19,13 @@ public class FileIndexer {
     private final IndexConfig config;
     private final FileFilter filter;
     private final ContentExtractor extractor;
-    private final DatabaseManager dbManager;
+    private final FileRepository repository;
 
-    public FileIndexer(IndexConfig config, DatabaseManager db, FileFilter filter, ContentExtractor extractor) {
-        this.config = config;
-        this.dbManager = db;
-        this.filter = filter;
-        this.extractor = extractor;
+    public FileIndexer(IndexConfig config, FileRepository repository,FileFilter filter, ContentExtractor extractor) {
+        this.config     = config;
+        this.repository = repository;
+        this.filter     = filter;
+        this.extractor  = extractor;
     }
 
     public void index() {
@@ -70,13 +70,13 @@ public class FileIndexer {
                                 String absolutePath=file.toAbsolutePath().toString();
                                 long fileModifiedTime=attrs.lastModifiedTime().toMillis();
 
-                                if(fileModifiedTime == dbManager.getLastModified(absolutePath)){
+                                if(fileModifiedTime == repository.getLastModified(absolutePath)){
                                     stats.recordSkipped();
                                     return FileVisitResult.CONTINUE;
                                 }
 
                                 FileRecord record = extractor.extract(file, attrs);
-                                dbManager.upsert(record);
+                                repository.upsert(record);
                                 stats.recordFile();
                                 System.out.println("[SAVED] " + record.name());
                             } catch (Exception e) {

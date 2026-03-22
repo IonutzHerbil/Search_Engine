@@ -1,0 +1,104 @@
+package app.db;
+
+import app.model.FileRecord;
+import app.model.SearchResult;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class FileRepository {
+
+    private final Connection connection;
+
+    public FileRepository(Database database) {
+        this.connection = database.getConnection();
+    }
+
+    public long getLastModified(String path) {
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT lastModified FROM files WHERE path = ?")) {
+            stmt.setString(1, path);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getLong(1);
+            }
+        } catch (SQLException ignored) {}
+        return -1;
+    }
+
+    public void upsert(FileRecord record) {
+        try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+             PreparedStatement del2 = connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
+             PreparedStatement ins1 = connection.prepareStatement(
+                     "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
+             PreparedStatement ins2 = connection.prepareStatement(
+                     "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
+
+            del1.setString(1, record.path()); del1.executeUpdate();
+            del2.setString(1, record.path()); del2.executeUpdate();
+
+            ins1.setString(1, record.path());
+            ins1.setString(2, record.name());
+            ins1.setString(3, record.extension());
+            ins1.setLong(4, record.sizeBytes());
+            ins1.setLong(5, record.lastModified());
+            ins1.setString(6, record.preview());
+            ins1.executeUpdate();
+
+            ins2.setString(1, record.path());
+            ins2.setString(2, record.name());
+            ins2.setString(3, record.content() != null ? record.content() : "");
+            ins2.executeUpdate();
+
+            connection.commit();
+        } catch (SQLException e) {
+            try { connection.rollback(); } catch (SQLException ignored) {}
+            System.err.println("[DB ERROR] Failed to save " + record.name() + ": " + e.getMessage());
+        }
+    }
+
+    public List<SearchResult> search(String query, String extension, int limit) {
+        boolean scoped = extension != null;
+        String sql = scoped
+                ? """
+                  SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
+                  FROM files_fts fts
+                  JOIN files f ON f.path = fts.path
+                  WHERE files_fts MATCH ? AND f.extension = ?
+                  ORDER BY rank LIMIT ?
+                  """
+                : """
+                  SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
+                  FROM files_fts fts
+                  JOIN files f ON f.path = fts.path
+                  WHERE files_fts MATCH ?
+                  ORDER BY rank LIMIT ?
+                  """;
+
+        List<SearchResult> results = new ArrayList<>();
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, query);
+            if (scoped) {
+                stmt.setString(2, extension);
+                stmt.setInt(3, limit);
+            } else {
+                stmt.setInt(2, limit);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new SearchResult(
+                            rs.getString("path"),
+                            rs.getString("name"),
+                            rs.getString("extension"),
+                            rs.getString("preview"),
+                            rs.getDouble("rank"),
+                            rs.getLong("lastModified")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[SEARCH ERROR] " + e.getMessage());
+        }
+        return results;
+    }
+}
