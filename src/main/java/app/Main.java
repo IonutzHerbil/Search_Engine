@@ -1,5 +1,6 @@
 package app;
 
+import app.cli.CLI;
 import app.config.IndexConfig;
 import app.db.Database;
 import app.db.FileRepository;
@@ -20,13 +21,9 @@ public class Main {
             FileFilter       filter     = new FileFilter(config);
             ContentExtractor extractor  = new ContentExtractor();
             FileIndexer      indexer    = new FileIndexer(config, repository, filter, extractor);
-            SearchEngine engine     = new SearchEngine(repository);
+            SearchEngine     engine     = new SearchEngine(repository);
 
-            indexer.index();
-
-            var results = engine.search("include", 500);
-            System.out.println("\nTest search 'public': " + results.size() + " result(s)");
-            results.forEach(r -> System.out.println("  " + r.name() + " | " + r.path()));
+            new CLI(indexer, engine).run();
 
             db.close();
         } catch (SQLException e) {
