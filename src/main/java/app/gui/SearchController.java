@@ -1,7 +1,11 @@
 package app.gui;
 
+import app.config.IndexConfig;
+import app.db.FileRepository;
+import app.indexer.FileFilter;
 import app.indexer.FileIndexer;
 import app.model.SearchResult;
+import app.processor.ContentExtractor;
 import app.search.SearchEngine;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -10,18 +14,20 @@ import java.util.List;
 
 public class SearchController {
 
-    @FXML private TextField  searchField;
-    @FXML private TextField  pathField;
+    @FXML private TextField searchField;
+    @FXML private TextField pathField;
     @FXML private ListView<SearchResult> resultsList;
-    @FXML private TextArea   previewArea;
-    @FXML private Label      statusLabel;
+    @FXML private TextArea  previewArea;
+    @FXML private Label     statusLabel;
 
-    private SearchEngine engine;
-    private FileIndexer  indexer;
+    private SearchEngine     engine;
+    private FileRepository   repository;
+    private ContentExtractor extractor;
 
-    public void init(FileIndexer indexer, SearchEngine engine) {
-        this.indexer = indexer;
-        this.engine  = engine;
+    public void init(FileRepository repository, SearchEngine engine) {
+        this.repository = repository;
+        this.engine     = engine;
+        this.extractor  = new ContentExtractor();
 
         resultsList.setCellFactory(lv -> new ListCell<>() {
             @Override
@@ -54,18 +60,26 @@ public class SearchController {
     @FXML
     private void onIndex() {
         String path = pathField.getText().trim();
-        if (!path.isEmpty()) {
-            statusLabel.setText("Indexing...");
-            indexer.index();
-            statusLabel.setText("Indexing complete.");
+        if (path.isEmpty()) {
+            statusLabel.setText("Enter a directory path first.");
+            return;
         }
+
+        statusLabel.setText("Indexing " + path + " ...");
+
+        IndexConfig config  = IndexConfig.fromArgs(new String[]{path});
+        FileFilter  filter  = new FileFilter(config);
+        FileIndexer indexer = new FileIndexer(config, repository, filter, extractor);
+
+        indexer.index();
+        statusLabel.setText("Indexing complete.");
     }
 
     private void onResultSelected(SearchResult result) {
         if (result == null) return;
         previewArea.setText(
-                "File:    " + result.name() + "\n" +
-                        "Path:    " + result.path() + "\n" +
+                "File:    " + result.name()      + "\n" +
+                        "Path:    " + result.path()      + "\n" +
                         "Ext:     " + result.extension() + "\n\n" +
                         (result.snippet() != null ? result.snippet() : "(no preview)")
         );
