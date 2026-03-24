@@ -106,6 +106,7 @@ public class FileRepository {
         List<String> paths = getPathsUnder(rootPath);
         for (String path : paths) {
             if (!Path.of(path).toFile().exists()) {
+                System.out.println("Deleting stale " + path);
                 delete(path);
             }
         }
