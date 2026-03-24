@@ -16,12 +16,15 @@
             </HBox>
             <HBox spacing="8">
                 <TextField fx:id="searchField"
-                           promptText="Search..."
+                           promptText="Search... (use ext:java to filter by extension)"
                            HBox.hgrow="ALWAYS"
                            onAction="#onSearch"/>
                 <Button text="Search" onAction="#onSearch"/>
             </HBox>
-            <Label fx:id="statusLabel" text="Ready."/>
+            <HBox spacing="6">
+                <ProgressIndicator fx:id="progressIndicator" maxHeight="16" maxWidth="16"/>
+                <Label fx:id="statusLabel" text="Ready."/>
+            </HBox>
         </VBox>
     </top>
 

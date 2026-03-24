@@ -7,6 +7,7 @@ import app.indexer.FileIndexer;
 import app.model.SearchResult;
 import app.processor.ContentExtractor;
 import app.search.SearchEngine;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -19,6 +20,7 @@ public class SearchController {
     @FXML private ListView<SearchResult> resultsList;
     @FXML private TextArea  previewArea;
     @FXML private Label     statusLabel;
+    @FXML private ProgressIndicator progressIndicator;
 
     private SearchEngine     engine;
     private FileRepository   repository;
@@ -28,6 +30,8 @@ public class SearchController {
         this.repository = repository;
         this.engine     = engine;
         this.extractor  = new ContentExtractor();
+
+        progressIndicator.setVisible(false);
 
         resultsList.setCellFactory(lv -> new ListCell<>() {
             @Override
@@ -65,14 +69,34 @@ public class SearchController {
             return;
         }
 
-        statusLabel.setText("Indexing " + path + " ...");
-
         IndexConfig config  = IndexConfig.fromArgs(new String[]{path});
         FileFilter  filter  = new FileFilter(config);
         FileIndexer indexer = new FileIndexer(config, repository, filter, extractor);
 
-        indexer.index();
-        statusLabel.setText("Indexing complete.");
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                indexer.index();
+                return null;
+            }
+        };
+
+        task.setOnRunning(e -> {
+            progressIndicator.setVisible(true);
+            statusLabel.setText("Indexing " + path + " ...");
+        });
+
+        task.setOnSucceeded(e -> {
+            progressIndicator.setVisible(false);
+            statusLabel.setText("Indexing complete.");
+        });
+
+        task.setOnFailed(e -> {
+            progressIndicator.setVisible(false);
+            statusLabel.setText("Indexing failed: " + task.getException().getMessage());
+        });
+
+        new Thread(task).start();
     }
 
     private void onResultSelected(SearchResult result) {
