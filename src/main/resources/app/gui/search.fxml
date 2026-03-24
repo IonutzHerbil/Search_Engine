@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="app.gui.SearchController"
+            prefWidth="900" prefHeight="600">
+
+    <top>
+        <VBox spacing="8" style="-fx-padding: 12;">
+            <HBox spacing="8">
+                <TextField fx:id="pathField"
+                           promptText="Directory to index..."
+                           HBox.hgrow="ALWAYS"/>
+                <Button text="Index" onAction="#onIndex"/>
+            </HBox>
+            <HBox spacing="8">
+                <TextField fx:id="searchField"
+                           promptText="Search..."
+                           HBox.hgrow="ALWAYS"
+                           onAction="#onSearch"/>
+                <Button text="Search" onAction="#onSearch"/>
+            </HBox>
+            <Label fx:id="statusLabel" text="Ready."/>
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.4">
+            <ListView fx:id="resultsList"/>
+            <TextArea fx:id="previewArea"
+                      editable="false"
+                      wrapText="true"
+                      promptText="Select a result to preview..."/>
+        </SplitPane>
+    </center>
+
+</BorderPane>
