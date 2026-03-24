@@ -73,10 +73,6 @@ graph TD
 
 ## 3. Components
 
-Seven components inside the JAR. The indexing pipeline flows through `FileIndexer`.
-`SearchEngine` is completely independent, used by both CLI and GUI.
-`SearchController` wires the GUI to the core.
-
 ```mermaid
 graph TD
     FS["Filesystem"]
@@ -259,19 +255,22 @@ classDiagram
 
     class SearchController {
         -SearchEngine engine
-        -FileIndexer indexer
+        -FileRepository repository
         -TextField searchField
+        -TextField pathField
         -ListView~SearchResult~ resultsList
-        -TextArea previewArea
+        -TextFlow previewFlow
         -Label statusLabel
-        +initialize()
+        -Label resultCountLabel
+        -Label previewFileLabel
+        -Label filePathLabel
+        -Label fileExtLabel
+        -Button viewFullButton
+        -PauseTransition liveSearchDelay
+        +init(FileRepository, SearchEngine)
         +onSearch()
         +onIndex()
-        +onResultSelected(SearchResult result)
-    }
-
-    class ResultCell {
-        +updateItem(SearchResult result, boolean empty)
+        +onViewFullFile()
     }
 
     FileIndexer --> FileFilter
@@ -293,14 +292,10 @@ classDiagram
     CLI --> SearchEngine
     MainApp --> SearchController
     SearchController --> SearchEngine
-    SearchController --> FileIndexer
-    SearchController --> ResultCell
+    SearchController --> FileRepository
 ```
 
-GUI layout: search bar at the top, scrollable results list in the middle showing
-filename, path and snippet per result, preview panel on the right showing the full
-file content when a result is clicked, status bar at the bottom for indexing progress
-and result count.
+GUI layout: sidebar on the left with index path input, search bar, live search, and results list. Preview panel on the right shows the matched file content with search terms highlighted. "View Full File" opens the complete file in a separate copyable window. Status bar at the bottom shows full path and extension.
 
 ---
 
