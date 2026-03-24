@@ -8,6 +8,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import atlantafx.base.theme.NordDark;
 
 public class MainApp extends Application {
 
@@ -26,6 +27,7 @@ public class MainApp extends Application {
 
         stage.setTitle("Search Engine");
         stage.setScene(scene);
+        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
         stage.show();
     }
 
