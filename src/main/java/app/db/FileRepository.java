@@ -3,6 +3,7 @@ package app.db;
 import app.model.FileRecord;
 import app.model.SearchResult;
 
+import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,5 +101,39 @@ public class FileRepository {
             System.err.println("[SEARCH ERROR] " + e.getMessage());
         }
         return results;
+    }
+    public void deleteStale(String rootPath) {
+        List<String> paths = getPathsUnder(rootPath);
+        for (String path : paths) {
+            if (!Path.of(path).toFile().exists()) {
+                delete(path);
+            }
+        }
+    }
+
+    private List<String> getPathsUnder(String rootPath) {
+        List<String> paths = new ArrayList<>();
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT path FROM files WHERE path LIKE ?")) {
+            stmt.setString(1, rootPath + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) paths.add(rs.getString("path"));
+            }
+        } catch (SQLException e) {
+            System.err.println("[CLEANUP ERROR] " + e.getMessage());
+        }
+        return paths;
+    }
+
+    private void delete(String path) {
+        try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+             PreparedStatement del2 = connection.prepareStatement("DELETE FROM files_fts WHERE path = ?")) {
+            del1.setString(1, path); del1.executeUpdate();
+            del2.setString(1, path); del2.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            try { connection.rollback(); } catch (SQLException ignored) {}
+            System.err.println("[DELETE ERROR] " + e.getMessage());
+        }
     }
 }

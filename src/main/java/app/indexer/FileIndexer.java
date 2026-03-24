@@ -98,6 +98,8 @@ public class FileIndexer {
             System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
         }
 
+        System.out.println("Cleaning up stale entries...");
+        repository.deleteStale(config.rootDirectory().toString());
         IndexReport report = stats.toReport(config.rootDirectory().toString());
         System.out.println("========================================");
         System.out.printf("Finished in %.2fs%n", report.elapsedSeconds());
