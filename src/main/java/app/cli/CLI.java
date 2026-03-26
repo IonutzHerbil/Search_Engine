@@ -1,6 +1,7 @@
 package app.cli;
 
 import app.indexer.FileIndexer;
+import app.model.IndexReport;
 import app.model.SearchResult;
 import app.search.SearchEngine;
 
@@ -18,8 +19,18 @@ public class CLI {
     }
 
     public void run() {
-        indexer.index();
+        IndexReport report = indexer.index();
+        printReport(report);
         runSearchLoop();
+    }
+
+    private void printReport(IndexReport report) {
+        System.out.println("========================================");
+        System.out.printf("Finished in %.2fs%n",  report.elapsedSeconds());
+        System.out.printf("Files Indexed : %d%n", report.filesFound());
+        System.out.printf("Files Skipped : %d%n", report.skipped());
+        System.out.printf("Dirs Visited  : %d%n", report.directoriesVisited());
+        System.out.printf("Errors        : %d%n", report.errors());
     }
 
     private void runSearchLoop() {

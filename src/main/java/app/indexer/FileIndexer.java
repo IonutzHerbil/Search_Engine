@@ -28,7 +28,7 @@ public class FileIndexer {
         this.extractor  = extractor;
     }
 
-    public void index() {
+    public IndexReport index() {
         System.out.println("Indexing: " + config.rootDirectory());
         System.out.println("----------------------------------------");
 
@@ -78,7 +78,6 @@ public class FileIndexer {
                                 FileRecord record = extractor.extract(file, attrs);
                                 repository.upsert(record);
                                 stats.recordFile();
-                                System.out.println("[SAVED] " + record.name());
                             } catch (Exception e) {
                                 stats.recordError();
                             }
@@ -86,26 +85,18 @@ public class FileIndexer {
                             return FileVisitResult.CONTINUE;
                         }
 
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    stats.recordError();
-                    System.err.println("[ERROR] " + file + " -> " + exc.getMessage());
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-
+                        @Override
+                        public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                            stats.recordError();
+                            System.err.println("[ERROR] " + file + " -> " + exc.getMessage());
+                            return FileVisitResult.CONTINUE;
+                        }
+                    });
         } catch (IOException e) {
             System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
         }
 
-        System.out.println("Cleaning up stale entries...");
         repository.deleteStale(config.rootDirectory().toString());
-        IndexReport report = stats.toReport(config.rootDirectory().toString());
-        System.out.println("========================================");
-        System.out.printf("Finished in %.2fs%n", report.elapsedSeconds());
-        System.out.printf("Files Indexed : %d%n", report.filesFound());
-        System.out.printf("Files Skipped : %d%n", report.skipped());
-        System.out.printf("Dirs Visited  : %d%n", report.directoriesVisited());
-        System.out.printf("Errors        : %d%n", report.errors());
+        return stats.toReport(config.rootDirectory().toString());
     }
 }

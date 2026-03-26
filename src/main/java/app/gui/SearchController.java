@@ -4,6 +4,7 @@ import app.config.IndexConfig;
 import app.db.FileRepository;
 import app.indexer.FileFilter;
 import app.indexer.FileIndexer;
+import app.model.IndexReport;
 import app.model.SearchResult;
 import app.processor.ContentExtractor;
 import app.search.SearchEngine;
@@ -145,9 +146,17 @@ public class SearchController {
             statusLabel.setText("Indexing " + path + "...");
         }));
 
+        Task<IndexReport> indTask = new Task<>() {
+            @Override
+            protected IndexReport call() {
+                return indexer.index();
+            }
+        };
+
         task.setOnSucceeded(e -> Platform.runLater(() -> {
+            IndexReport report = indTask.getValue();
             progressIndicator.setVisible(false);
-            statusLabel.setText("Done.");
+            statusLabel.setText("Done. " + report.filesFound() + " indexed, " + report.skipped() + " skipped.");
         }));
 
         task.setOnFailed(e -> Platform.runLater(() -> {
