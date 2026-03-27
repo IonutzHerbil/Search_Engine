@@ -29,11 +29,8 @@ public class FileIndexer {
     }
 
     public IndexReport index() {
-        System.out.println("Indexing: " + config.rootDirectory());
-        System.out.println("----------------------------------------");
-
-        TraversalStats stats = new TraversalStats();
-        Set<Path> visitedRealPaths = new HashSet<>();
+        TraversalStats stats        = new TraversalStats();
+        Set<Path>      visitedRealPaths = new HashSet<>();
 
         try {
             Files.walkFileTree(config.rootDirectory(), EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE,

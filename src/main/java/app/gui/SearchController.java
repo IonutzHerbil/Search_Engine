@@ -8,6 +8,7 @@ import app.model.IndexReport;
 import app.model.SearchResult;
 import app.processor.ContentExtractor;
 import app.search.SearchEngine;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -20,8 +21,6 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import javafx.animation.PauseTransition;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -133,11 +132,10 @@ public class SearchController {
         FileFilter  filter  = new FileFilter(config);
         FileIndexer indexer = new FileIndexer(config, repository, filter, extractor);
 
-        Task<Void> task = new Task<>() {
+        Task<IndexReport> task = new Task<>() {
             @Override
-            protected Void call() {
-                indexer.index();
-                return null;
+            protected IndexReport call() {
+                return indexer.index();
             }
         };
 
@@ -146,15 +144,8 @@ public class SearchController {
             statusLabel.setText("Indexing " + path + "...");
         }));
 
-        Task<IndexReport> indTask = new Task<>() {
-            @Override
-            protected IndexReport call() {
-                return indexer.index();
-            }
-        };
-
         task.setOnSucceeded(e -> Platform.runLater(() -> {
-            IndexReport report = indTask.getValue();
+            IndexReport report = task.getValue();
             progressIndicator.setVisible(false);
             statusLabel.setText("Done. " + report.filesFound() + " indexed, " + report.skipped() + " skipped.");
         }));
@@ -208,8 +199,7 @@ public class SearchController {
         java.util.List<Text> nodes = new java.util.ArrayList<>();
 
         if (query == null || query.isBlank()) {
-            Text t = styledText(content, false);
-            nodes.add(t);
+            nodes.add(styledText(content, false));
             return nodes;
         }
 
