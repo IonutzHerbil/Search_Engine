@@ -1,12 +1,9 @@
 package app.gui;
 
-import app.config.IndexConfig;
-import app.db.FileRepository;
-import app.indexer.FileFilter;
 import app.indexer.FileIndexer;
+import app.indexer.IndexerFactory;
 import app.model.IndexReport;
 import app.model.SearchResult;
-import app.processor.ContentExtractor;
 import app.search.SearchEngine;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -40,16 +37,14 @@ public class SearchController {
     @FXML private ProgressIndicator progressIndicator;
     @FXML private Button      viewFullButton;
 
-    private SearchEngine     engine;
-    private FileRepository   repository;
-    private ContentExtractor extractor;
-    private SearchResult     selectedResult;
-    private PauseTransition  liveSearchDelay;
+    private SearchEngine    engine;
+    private IndexerFactory  factory;
+    private SearchResult    selectedResult;
+    private PauseTransition liveSearchDelay;
 
-    public void init(FileRepository repository, SearchEngine engine) {
-        this.repository = repository;
-        this.engine     = engine;
-        this.extractor  = new ContentExtractor();
+    public void init(IndexerFactory factory, SearchEngine engine) {
+        this.factory = factory;
+        this.engine  = engine;
 
         progressIndicator.setVisible(false);
 
@@ -128,9 +123,7 @@ public class SearchController {
             return;
         }
 
-        IndexConfig config  = IndexConfig.fromArgs(new String[]{path});
-        FileFilter  filter  = new FileFilter(config);
-        FileIndexer indexer = new FileIndexer(config, repository, filter, extractor);
+        FileIndexer indexer = factory.create(path);
 
         Task<IndexReport> task = new Task<>() {
             @Override
