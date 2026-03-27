@@ -7,7 +7,7 @@ import java.util.List;
 
 public class SearchEngine {
 
-    private static final int DEFAULT_LIMIT = 10;
+    private static final int DEFAULT_LIMIT = 50;
 
     private final FileRepository      repository;
     private final SearchRequestParser parser;
