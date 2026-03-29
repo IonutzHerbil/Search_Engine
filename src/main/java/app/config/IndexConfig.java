@@ -23,11 +23,10 @@ public record IndexConfig(
           ".*scoop.*",
           ".*AppData.*");
 
-  private static final Set<String> DEFAULT_IGNORED_EXTS = Set.of(
-          "class", "obj", "o",
-          "zip", "tar", "gz", "rar", "7z",
-          "tmp", "bak", "lnk", "db", "sqlite"
-  );
+  private static final Set<String> DEFAULT_IGNORED_EXTS =
+      Set.of(
+          "class", "obj", "o", "zip", "tar", "gz", "rar", "7z", "tmp", "bak", "lnk", "db",
+          "sqlite");
 
   public static IndexConfig fromArgs(String[] args) {
     Path root = args.length > 0 ? Paths.get(args[0]) : Paths.get(System.getProperty("user.home"));
