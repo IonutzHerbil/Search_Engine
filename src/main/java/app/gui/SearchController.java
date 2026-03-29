@@ -8,18 +8,24 @@ import app.search.SearchEngine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -29,24 +35,35 @@ public class SearchController {
   @FXML private TextField pathField;
   @FXML private ListView<SearchResult> resultsList;
   @FXML private TextFlow previewFlow;
+  @FXML private TextFlow fullFileFlow;
   @FXML private Label statusLabel;
   @FXML private Label resultCountLabel;
   @FXML private Label previewFileLabel;
   @FXML private Label filePathLabel;
   @FXML private Label fileExtLabel;
-  @FXML private ProgressIndicator progressIndicator;
-  @FXML private Button viewFullButton;
+  @FXML private Label reportIndexed;
+  @FXML private Label reportSkipped;
+  @FXML private Label reportDirs;
+  @FXML private Label reportErrors;
+  @FXML private Label reportTime;
+  @FXML private ProgressBar progressBar;
+  @FXML private HBox reportBox;
+  @FXML private TabPane tabPane;
 
   private SearchEngine engine;
   private IndexerFactory factory;
-  private SearchResult selectedResult;
   private PauseTransition liveSearchDelay;
+  private String currentFullFileContent;
 
   public void init(IndexerFactory factory, SearchEngine engine) {
     this.factory = factory;
     this.engine = engine;
 
-    progressIndicator.setVisible(false);
+    progressBar.setProgress(0);
+    progressBar.setVisible(false);
+    progressBar.setManaged(false);
+
+    resultsList.setFixedCellSize(72);
 
     setupResultsList();
     setupLiveSearch();
@@ -56,38 +73,57 @@ public class SearchController {
     resultsList.setCellFactory(
         lv ->
             new ListCell<>() {
+              private final VBox box = new VBox(2);
+              private final HBox topRow = new HBox(6);
+              private final Label nameLabel = new Label();
+              private final Label extLabel = new Label();
+              private final Label pathLabel = new Label();
+              private final Label snippetLabel = new Label();
+              private final Region spacer = new Region();
+
+              {
+                box.setPadding(new Insets(8, 14, 8, 14));
+
+                nameLabel.getStyleClass().add("cell-name");
+                extLabel.getStyleClass().add("cell-ext");
+                pathLabel.getStyleClass().add("cell-path");
+                snippetLabel.getStyleClass().add("cell-snippet");
+
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                topRow.setAlignment(Pos.CENTER_LEFT);
+                topRow.getChildren().addAll(nameLabel, spacer, extLabel);
+
+                pathLabel.setMaxWidth(Double.MAX_VALUE);
+                snippetLabel.setMaxWidth(Double.MAX_VALUE);
+
+                box.getChildren().addAll(topRow, pathLabel, snippetLabel);
+                box.setMaxWidth(Double.MAX_VALUE);
+              }
+
               @Override
               protected void updateItem(SearchResult r, boolean empty) {
                 super.updateItem(r, empty);
                 if (empty || r == null) {
-                  setText(null);
                   setGraphic(null);
-                  setStyle("");
                   return;
                 }
 
-                VBox box = new VBox(3);
-                box.setPadding(new Insets(8, 12, 8, 12));
-
-                Label name = new Label(r.name());
-                name.setStyle(
-                    "-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: -color-fg-default;");
-
-                Label path = new Label(shortenPath(r.path()));
-                path.setStyle(
-                    "-fx-font-size: 10px; -fx-text-fill: -color-fg-muted; -fx-font-family: 'Consolas', monospace;");
-                path.setWrapText(true);
-
-                box.getChildren().addAll(name, path);
+                nameLabel.setText(r.name());
+                String ext = r.extension();
+                extLabel.setText(ext != null && !ext.isBlank() ? ext : "—");
+                pathLabel.setText(shortenPath(r.path(), 60));
 
                 if (r.snippet() != null && !r.snippet().isBlank()) {
-                  Label snippet = new Label(r.snippet().lines().findFirst().orElse(""));
-                  snippet.setStyle(
-                      "-fx-font-size: 10px; -fx-text-fill: -color-fg-subtle; -fx-font-family: 'Consolas', monospace;");
-                  box.getChildren().add(snippet);
+                  String line = r.snippet().lines().findFirst().orElse("").trim();
+                  snippetLabel.setText(line.length() > 80 ? line.substring(0, 80) + "…" : line);
+                  snippetLabel.setVisible(true);
+                  snippetLabel.setManaged(true);
+                } else {
+                  snippetLabel.setText("");
+                  snippetLabel.setVisible(false);
+                  snippetLabel.setManaged(false);
                 }
 
-                setText(null);
                 setGraphic(box);
               }
             });
@@ -106,6 +142,15 @@ public class SearchController {
           if (!query.isEmpty()) performSearch(query);
         });
     searchField.textProperty().addListener((obs, old, val) -> liveSearchDelay.playFromStart());
+  }
+
+  @FXML
+  private void onBrowse() {
+    DirectoryChooser chooser = new DirectoryChooser();
+    chooser.setTitle("Select Directory to Index");
+    Stage stage = (Stage) pathField.getScene().getWindow();
+    java.io.File dir = chooser.showDialog(stage);
+    if (dir != null) pathField.setText(dir.getAbsolutePath());
   }
 
   @FXML
@@ -132,41 +177,48 @@ public class SearchController {
 
     FileIndexer indexer = factory.create(path);
 
+    reportBox.setVisible(false);
+    reportBox.setManaged(false);
+    progressBar.setVisible(true);
+    progressBar.setManaged(true);
+    progressBar.setProgress(-1);
+
     Task<IndexReport> task =
         new Task<>() {
           @Override
           protected IndexReport call() {
-            return indexer.index();
+            return indexer.index(
+                name -> Platform.runLater(() -> statusLabel.setText("Indexing: " + name)));
           }
         };
 
-    task.setOnRunning(
-        e ->
-            Platform.runLater(
-                () -> {
-                  progressIndicator.setVisible(true);
-                  statusLabel.setText("Indexing " + path + "...");
-                }));
+    task.setOnRunning(e -> Platform.runLater(() -> statusLabel.setText("Indexing…")));
 
     task.setOnSucceeded(
         e ->
             Platform.runLater(
                 () -> {
                   IndexReport report = task.getValue();
-                  progressIndicator.setVisible(false);
-                  statusLabel.setText(
-                      "Done. "
-                          + report.filesFound()
-                          + " indexed, "
-                          + report.skipped()
-                          + " skipped.");
+                  progressBar.setVisible(false);
+                  progressBar.setManaged(false);
+                  statusLabel.setText("Done.");
+
+                  reportIndexed.setText(String.valueOf(report.filesFound()));
+                  reportSkipped.setText(String.valueOf(report.skipped()));
+                  reportDirs.setText(String.valueOf(report.directoriesVisited()));
+                  reportErrors.setText(String.valueOf(report.errors()));
+                  reportTime.setText(String.format("%.2fs", report.elapsedSeconds()));
+
+                  reportBox.setVisible(true);
+                  reportBox.setManaged(true);
                 }));
 
     task.setOnFailed(
         e ->
             Platform.runLater(
                 () -> {
-                  progressIndicator.setVisible(false);
+                  progressBar.setVisible(false);
+                  progressBar.setManaged(false);
                   statusLabel.setText("Failed: " + task.getException().getMessage());
                 }));
 
@@ -175,43 +227,41 @@ public class SearchController {
 
   private void onResultSelected(SearchResult result) {
     if (result == null) return;
-    selectedResult = result;
 
     previewFileLabel.setText(result.name());
     filePathLabel.setText(result.path());
-    fileExtLabel.setText(result.extension() != null ? "." + result.extension() : "");
-    viewFullButton.setDisable(false);
+    fileExtLabel.setText(
+        result.extension() != null && !result.extension().isBlank()
+            ? "." + result.extension()
+            : "");
 
-    String content = result.snippet() != null ? result.snippet() : "(no preview available)";
+    String content =
+        result.snippet() != null && !result.snippet().isBlank()
+            ? result.snippet()
+            : "(no preview — binary or unreadable file)";
     String query = extractTerms(searchField.getText().trim());
 
     previewFlow.getChildren().setAll(buildHighlightedText(content, query));
+    tabPane.getSelectionModel().select(0);
+    loadFullFile(result.path(), query);
+  }
+
+  private void loadFullFile(String filePath, String query) {
+    try {
+      currentFullFileContent = Files.readString(Path.of(filePath));
+    } catch (IOException e) {
+      currentFullFileContent = "(could not read file: " + e.getMessage() + ")";
+    }
+    fullFileFlow.getChildren().setAll(buildHighlightedText(currentFullFileContent, query));
   }
 
   @FXML
   private void onViewFullFile() {
-    if (selectedResult == null) return;
-
-    String content;
-    try {
-      content = Files.readString(Path.of(selectedResult.path()));
-    } catch (IOException e) {
-      content = "Could not read file: " + e.getMessage();
-    }
-
-    TextArea area = new TextArea(content);
-    area.setEditable(false);
-    area.setWrapText(false);
-    area.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
-
-    Stage stage = new Stage();
-    stage.setTitle(selectedResult.name() + "  —  " + selectedResult.path());
-    stage.setScene(new Scene(area, 900, 650));
-    stage.show();
+    tabPane.getSelectionModel().select(1);
   }
 
-  private List<Text> buildHighlightedText(String content, String query) {
-    java.util.List<Text> nodes = new java.util.ArrayList<>();
+  private List<Node> buildHighlightedText(String content, String query) {
+    List<Node> nodes = new ArrayList<>();
 
     if (query == null || query.isBlank()) {
       nodes.add(styledText(content, false));
@@ -225,12 +275,10 @@ public class SearchController {
     while (true) {
       int idx = lower.indexOf(term, start);
       if (idx == -1) {
-        nodes.add(styledText(content.substring(start), false));
+        if (start < content.length()) nodes.add(styledText(content.substring(start), false));
         break;
       }
-      if (idx > start) {
-        nodes.add(styledText(content.substring(start, idx), false));
-      }
+      if (idx > start) nodes.add(styledText(content.substring(start, idx), false));
       nodes.add(styledText(content.substring(idx, idx + term.length()), true));
       start = idx + term.length();
     }
@@ -263,9 +311,9 @@ public class SearchController {
     return terms.toString();
   }
 
-  private String shortenPath(String path) {
+  private String shortenPath(String path, int max) {
     if (path == null) return "";
-    if (path.length() <= 55) return path;
+    if (path.length() <= max) return path;
     return "..." + path.substring(path.length() - 52);
   }
 }

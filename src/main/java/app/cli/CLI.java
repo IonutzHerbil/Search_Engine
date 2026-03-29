@@ -18,7 +18,9 @@ public class CLI {
   }
 
   public void run() {
-    IndexReport report = indexer.index();
+    System.out.println("Indexing: " + indexer.getRootDirectory());
+    System.out.println("----------------------------------------");
+    IndexReport report = indexer.index(name -> System.out.println("[+] " + name));
     printReport(report);
     runSearchLoop();
   }

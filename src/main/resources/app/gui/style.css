@@ -1,0 +1,313 @@
+
+.root-split {
+    -fx-background-color: #2e3440;
+}
+
+.root-split > .split-pane-divider {
+    -fx-background-color: #3b4252;
+    -fx-padding: 0 0.5 0 0.5;
+}
+
+.left-panel {
+    -fx-background-color: #2e3440;
+}
+
+.controls-area {
+    -fx-background-color: #2e3440;
+}
+
+.title-bar {
+    -fx-background-color: #2e3440;
+}
+
+.title-icon {
+    -fx-font-size: 22px;
+    -fx-text-fill: #88c0d0;
+}
+
+.app-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #eceff4;
+}
+
+.app-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #4c566a;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.compact-field {
+    -fx-font-size: 12px;
+    -fx-font-family: "Consolas", monospace;
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+    -fx-prompt-text-fill: #4c566a;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1;
+    -fx-padding: 6 10;
+}
+
+.compact-field:focused {
+    -fx-border-color: #88c0d0;
+}
+
+.search-field {
+    -fx-font-size: 14px;
+    -fx-font-family: "Consolas", monospace;
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #eceff4;
+    -fx-prompt-text-fill: #4c566a;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1;
+    -fx-padding: 10 14;
+}
+
+.search-field:focused {
+    -fx-border-color: #88c0d0;
+    -fx-background-color: #3b4252;
+}
+
+.btn-accent {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 6 16;
+    -fx-background-radius: 4;
+    -fx-background-color: #5e81ac;
+    -fx-text-fill: #eceff4;
+    -fx-cursor: hand;
+}
+
+.btn-accent:hover {
+    -fx-background-color: #81a1c1;
+}
+
+.btn-accent:pressed {
+    -fx-background-color: #4c6a8f;
+}
+
+.btn-flat {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-padding: 6 12;
+    -fx-background-radius: 4;
+    -fx-background-color: #3b4252;
+    -fx-text-fill: #d8dee9;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.btn-flat:hover {
+    -fx-background-color: #434c5e;
+}
+
+.btn-flat:disabled {
+    -fx-opacity: 0.35;
+}
+
+.status-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4c566a;
+}
+
+.result-count {
+    -fx-font-size: 11px;
+    -fx-text-fill: #88c0d0;
+    -fx-font-weight: 600;
+}
+
+.slim-progress {
+    -fx-pref-height: 3;
+    -fx-max-height: 3;
+}
+
+.slim-progress .bar {
+    -fx-background-color: #88c0d0;
+    -fx-background-radius: 0;
+}
+
+.slim-progress .track {
+    -fx-background-color: #3b4252;
+    -fx-background-radius: 0;
+}
+
+.report-strip {
+    -fx-background-color: #3b4252;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1 0;
+}
+
+.rpt-val {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #eceff4;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.rpt-lbl {
+    -fx-font-size: 11px;
+    -fx-text-fill: #4c566a;
+}
+
+.rpt-sep {
+    -fx-text-fill: #434c5e;
+    -fx-font-size: 11px;
+}
+
+.thin-sep .line {
+    -fx-border-color: #3b4252;
+    -fx-border-width: 0 0 1 0;
+}
+
+.results-list {
+    -fx-background-color: #2e3440;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+
+.results-list:focused {
+    -fx-background-insets: 0;
+    -fx-background-color: #2e3440;
+}
+
+.results-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-border-color: transparent transparent #3b4252 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.results-list .list-cell:filled:selected {
+    -fx-background-color: #3b4252;
+}
+
+.results-list .list-cell:filled:hover {
+    -fx-background-color: rgba(136, 192, 208, 0.06);
+}
+
+.results-list .list-cell:filled:selected:hover {
+    -fx-background-color: #434c5e;
+}
+
+.results-list .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.cell-name {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #eceff4;
+}
+
+.cell-ext {
+    -fx-font-size: 9px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #88c0d0;
+    -fx-background-color: rgba(136, 192, 208, 0.12);
+    -fx-background-radius: 3;
+    -fx-padding: 2 6 2 6;
+}
+
+.cell-path {
+    -fx-font-size: 10px;
+    -fx-text-fill: #4c566a;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.cell-snippet {
+    -fx-font-size: 10px;
+    -fx-text-fill: #616e88;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.right-panel {
+    -fx-background-color: #2e3440;
+}
+
+.file-bar {
+    -fx-background-color: #2e3440;
+}
+
+.file-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #eceff4;
+}
+
+.file-subtitle {
+    -fx-font-size: 10px;
+    -fx-text-fill: #4c566a;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.ext-pill {
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #88c0d0;
+    -fx-background-color: rgba(136, 192, 208, 0.12);
+    -fx-background-radius: 4;
+    -fx-padding: 3 10;
+}
+
+.preview-tabs > .tab-header-area {
+    -fx-padding: 0 12 0 12;
+}
+
+.preview-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-padding: 8 14;
+}
+
+.preview-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.code-flow {
+    -fx-line-spacing: 2;
+}
+
+.code-scroll {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.code-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #434c5e;
+    -fx-background-radius: 3;
+}
+
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #4c566a;
+}
+
+.scroll-bar:vertical .track,
+.scroll-bar:horizontal .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-padding: 0;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: "";
+    -fx-padding: 0;
+}

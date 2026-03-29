@@ -12,6 +12,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class FileIndexer {
 
@@ -31,7 +32,7 @@ public class FileIndexer {
     this.extractor = extractor;
   }
 
-  public IndexReport index() {
+  public IndexReport index(Consumer<String> onFileIndexed) {
     TraversalStats stats = new TraversalStats();
     Set<Path> visitedRealPaths = new HashSet<>();
 
@@ -83,6 +84,7 @@ public class FileIndexer {
                 FileRecord record = extractor.extract(file, attrs);
                 repository.upsert(record);
                 stats.recordFile();
+                onFileIndexed.accept(record.name());
               } catch (Exception e) {
                 stats.recordError();
               }
@@ -103,5 +105,9 @@ public class FileIndexer {
 
     repository.deleteStale(config.rootDirectory().toString());
     return stats.toReport(config.rootDirectory().toString());
+  }
+
+  public Path getRootDirectory() {
+    return config.rootDirectory();
   }
 }

@@ -1,137 +1,130 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-
 <?import javafx.scene.text.TextFlow?>
-<HBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="app.gui.SearchController"
-      prefWidth="1200" prefHeight="740"
-      style="-fx-background-color: -color-bg-default;">
 
-    <!-- LEFT SIDEBAR -->
-    <VBox prefWidth="380" minWidth="300"
-          style="-fx-background-color: -color-bg-subtle;
-                 -fx-border-color: -color-border-default;
-                 -fx-border-width: 0 1 0 0;">
+<SplitPane dividerPositions="0.35"
+           xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="app.gui.SearchController"
+           styleClass="root-split"
+           prefWidth="1280" prefHeight="720">
 
-        <!-- Header -->
-        <VBox style="-fx-padding: 20 16 14 16;
-                     -fx-border-color: -color-border-default;
-                     -fx-border-width: 0 0 1 0;">
-            <Label text="Search Engine"
-                   style="-fx-font-size: 15px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: -color-fg-default;"/>
-            <Label text="local file index"
-                   style="-fx-font-size: 11px;
-                          -fx-text-fill: -color-fg-muted;
-                          -fx-padding: 2 0 0 0;"/>
-        </VBox>
+    <BorderPane styleClass="left-panel">
+        <top>
+            <VBox spacing="0" styleClass="controls-area">
 
-        <!-- Index section -->
-        <VBox style="-fx-padding: 14 16 14 16;
-                     -fx-border-color: -color-border-default;
-                     -fx-border-width: 0 0 1 0;"
-              spacing="8">
-            <Label text="INDEX DIRECTORY"
-                   style="-fx-font-size: 10px;
-                          -fx-text-fill: -color-fg-muted;
-                          -fx-font-weight: bold;"/>
-            <HBox spacing="8">
-                <TextField fx:id="pathField"
-                           promptText="e.g. D:\Projects"
-                           style="-fx-font-size: 12px; -fx-font-family: 'Consolas', monospace;"
-                           HBox.hgrow="ALWAYS"/>
-                <Button fx:id="indexButton"
-                        text="Index"
-                        onAction="#onIndex"
-                        minWidth="64"
-                        style="-fx-font-size: 12px;"/>
-            </HBox>
-            <HBox spacing="6" alignment="CENTER_LEFT">
-                <ProgressIndicator fx:id="progressIndicator"
-                                   maxHeight="12" maxWidth="12"
-                                   style="-fx-progress-color: -color-accent-fg;"/>
-                <Label fx:id="statusLabel"
-                       text="Ready."
-                       style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;"/>
-            </HBox>
-        </VBox>
+                <HBox alignment="CENTER_LEFT" spacing="8" styleClass="title-bar">
+                    <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
+                    <VBox spacing="1">
+                        <Label text="Search Engine" styleClass="app-title"/>
+                        <Label text="local file index · iteration 1" styleClass="app-subtitle"/>
+                    </VBox>
+                </HBox>
 
-        <!-- Search section -->
-        <VBox style="-fx-padding: 14 16 10 16;" spacing="8">
-            <Label text="SEARCH"
-                   style="-fx-font-size: 10px;
-                          -fx-text-fill: -color-fg-muted;
-                          -fx-font-weight: bold;"/>
-            <HBox spacing="8">
-                <TextField fx:id="searchField"
-                           promptText="keyword or keyword ext:java"
-                           style="-fx-font-size: 12px; -fx-font-family: 'Consolas', monospace;"
-                           onAction="#onSearch"
-                           HBox.hgrow="ALWAYS"/>
-                <Button text="Go"
-                        onAction="#onSearch"
-                        minWidth="44"
-                        style="-fx-font-size: 12px;"/>
-            </HBox>
-            <Label fx:id="resultCountLabel"
-                   text=""
-                   style="-fx-font-size: 11px; -fx-text-fill: -color-fg-muted;"/>
-        </VBox>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <padding><Insets top="8" right="16" bottom="8" left="16"/></padding>
+                    <TextField fx:id="pathField" promptText="Directory path..."
+                               HBox.hgrow="ALWAYS" styleClass="compact-field"/>
+                    <Button text="Browse" onAction="#onBrowse" styleClass="btn-flat"/>
+                    <Button text="Index"  onAction="#onIndex"  styleClass="btn-accent"/>
+                </HBox>
 
-        <ListView fx:id="resultsList"
-                  VBox.vgrow="ALWAYS"
-                  style="-fx-background-color: transparent; -fx-border-width: 0;"/>
-    </VBox>
+                <HBox alignment="CENTER_LEFT">
+                    <padding><Insets top="0" right="16" bottom="6" left="16"/></padding>
+                    <Label fx:id="statusLabel" text="Ready" styleClass="status-text"/>
+                </HBox>
 
-    <VBox HBox.hgrow="ALWAYS"
-          style="-fx-background-color: -color-bg-default;">
+                <ProgressBar fx:id="progressBar" maxWidth="Infinity"
+                             visible="false" managed="false"
+                             prefHeight="3" styleClass="slim-progress"/>
 
-        <!-- Preview header -->
-        <HBox style="-fx-padding: 14 20 14 20;
-                     -fx-border-color: -color-border-default;
-                     -fx-border-width: 0 0 1 0;
-                     -fx-background-color: -color-bg-subtle;"
-              alignment="CENTER_LEFT"
-              spacing="12">
-            <Label fx:id="previewFileLabel"
-                   text="No file selected"
-                   style="-fx-font-size: 13px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: -color-fg-default;
-                          -fx-font-family: 'Consolas', monospace;"
-                   HBox.hgrow="ALWAYS"/>
-            <Button fx:id="viewFullButton"
-                    text="View Full File"
-                    onAction="#onViewFullFile"
-                    disable="true"
-                    style="-fx-font-size: 11px;"/>
-        </HBox>
+                <HBox fx:id="reportBox" visible="false" managed="false"
+                      styleClass="report-strip" spacing="0" alignment="CENTER">
+                    <padding><Insets top="6" right="16" bottom="6" left="16"/></padding>
+                    <Label fx:id="reportIndexed" text="0" styleClass="rpt-val"/>
+                    <Label text=" indexed" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportSkipped" text="0" styleClass="rpt-val"/>
+                    <Label text=" skipped" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportDirs" text="0" styleClass="rpt-val"/>
+                    <Label text=" dirs" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportErrors" text="0" styleClass="rpt-val"/>
+                    <Label text=" errors" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportTime" text="—" styleClass="rpt-val"/>
+                </HBox>
 
-        <!-- Preview content with highlights -->
-        <ScrollPane fitToWidth="true"
-                    VBox.vgrow="ALWAYS"
-                    style="-fx-background-color: transparent; -fx-border-width: 0;">
-            <TextFlow fx:id="previewFlow"
-                      style="-fx-padding: 20; -fx-line-spacing: 4;"/>
-        </ScrollPane>
+                <Separator styleClass="thin-sep"/>
 
-        <!-- Bottom info bar -->
-        <HBox style="-fx-padding: 8 20 8 20;
-                     -fx-border-color: -color-border-default;
-                     -fx-border-width: 1 0 0 0;
-                     -fx-background-color: -color-bg-subtle;"
-              spacing="20">
-            <Label fx:id="filePathLabel"
-                   text=""
-                   style="-fx-font-size: 10px;
-                          -fx-text-fill: -color-fg-muted;
-                          -fx-font-family: 'Consolas', monospace;"/>
-            <Label fx:id="fileExtLabel"
-                   text=""
-                   style="-fx-font-size: 10px; -fx-text-fill: -color-fg-muted;"/>
-        </HBox>
-    </VBox>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <padding><Insets top="10" right="16" bottom="6" left="16"/></padding>
+                    <TextField fx:id="searchField" promptText="Search... (or keyword ext:java)"
+                               onAction="#onSearch" HBox.hgrow="ALWAYS"
+                               styleClass="search-field"/>
+                </HBox>
+                <HBox alignment="CENTER_LEFT">
+                    <padding><Insets top="0" right="16" bottom="8" left="16"/></padding>
+                    <Label fx:id="resultCountLabel" text="" styleClass="result-count"/>
+                </HBox>
 
-</HBox>
+            </VBox>
+        </top>
+
+        <center>
+            <ListView fx:id="resultsList" styleClass="results-list"/>
+        </center>
+    </BorderPane>
+
+    <BorderPane styleClass="right-panel">
+        <top>
+            <VBox spacing="0">
+                <HBox styleClass="file-bar" alignment="CENTER_LEFT" spacing="10">
+                    <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
+                    <VBox spacing="2" HBox.hgrow="ALWAYS">
+                        <Label fx:id="previewFileLabel" text="No file selected"
+                               styleClass="file-title"/>
+                        <Label fx:id="filePathLabel" text="" styleClass="file-subtitle"/>
+                    </VBox>
+                    <Label fx:id="fileExtLabel" text="" styleClass="ext-pill"/>
+                </HBox>
+                <Separator styleClass="thin-sep"/>
+            </VBox>
+        </top>
+
+        <center>
+            <TabPane fx:id="tabPane" styleClass="preview-tabs"
+                     tabClosingPolicy="UNAVAILABLE"
+                     maxHeight="Infinity" maxWidth="Infinity">
+
+                <Tab text="Preview">
+                    <VBox VBox.vgrow="ALWAYS">
+                        <ScrollPane fitToWidth="true" fitToHeight="false"
+                                    VBox.vgrow="ALWAYS"
+                                    styleClass="code-scroll">
+                            <TextFlow fx:id="previewFlow" styleClass="code-flow">
+                                <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+                            </TextFlow>
+                        </ScrollPane>
+                    </VBox>
+                </Tab>
+
+                <Tab text="Full File">
+                    <VBox spacing="0">
+                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                                    styleClass="code-scroll">
+                            <TextFlow fx:id="fullFileFlow" styleClass="code-flow">
+                                <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+                            </TextFlow>
+                        </ScrollPane>
+                    </VBox>
+                </Tab>
+
+            </TabPane>
+        </center>
+    </BorderPane>
+
+</SplitPane>

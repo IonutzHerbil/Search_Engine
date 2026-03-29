@@ -16,6 +16,8 @@ public class MainApp extends Application {
 
   @Override
   public void start(Stage stage) throws Exception {
+    Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+
     IndexConfig config = IndexConfig.fromArgs(new String[0]);
     Database db = new Database(config.dbPath());
     FileRepository repository = new FileRepository(db);
@@ -25,11 +27,11 @@ public class MainApp extends Application {
 
     FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/gui/search.fxml"));
     Scene scene = new Scene(loader.load());
+    scene.getStylesheets().add(getClass().getResource("/app/gui/style.css").toExternalForm());
 
     SearchController controller = loader.getController();
     controller.init(factory, engine);
 
-    Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
     stage.setTitle("Search Engine");
     stage.setScene(scene);
     stage.show();
