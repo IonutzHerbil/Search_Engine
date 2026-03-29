@@ -8,6 +8,9 @@ public class Database {
 
   public Database(String dbPath) throws SQLException {
     connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+    try (Statement stmt = connection.createStatement()) {
+      stmt.execute("PRAGMA journal_mode=WAL;");
+    }
     connection.setAutoCommit(false);
     initSchema();
     connection.commit();
