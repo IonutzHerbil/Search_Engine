@@ -301,14 +301,14 @@ public class SearchController {
 
   private String extractTerms(String raw) {
     if (raw == null || raw.isBlank()) return "";
-    StringBuilder terms = new StringBuilder();
-    for (String part : raw.trim().split("\\s+")) {
-      if (!part.toLowerCase().startsWith("ext:")) {
-        if (!terms.isEmpty()) terms.append(" ");
-        terms.append(part);
+    StringBuilder sb = new StringBuilder();
+    for (String p : raw.trim().split("\\s+")) {
+      if (!p.toLowerCase().startsWith("ext:") && !p.toLowerCase().startsWith("dir:")) {
+        if (!sb.isEmpty()) sb.append(" ");
+        sb.append(p);
       }
     }
-    return terms.toString();
+    return sb.toString();
   }
 
   private String shortenPath(String path, int max) {

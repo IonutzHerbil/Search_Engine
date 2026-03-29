@@ -66,34 +66,28 @@ public class FileRepository {
     }
   }
 
-  public List<SearchResult> search(String query, String extension, int limit) {
-    boolean scoped = extension != null;
-    String sql =
-        scoped
-            ? """
-                  SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
-                  FROM files_fts fts
-                  JOIN files f ON f.path = fts.path
-                  WHERE files_fts MATCH ? AND f.extension = ?
-                  ORDER BY rank LIMIT ?
-                  """
-            : """
-                  SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
-                  FROM files_fts fts
-                  JOIN files f ON f.path = fts.path
-                  WHERE files_fts MATCH ?
-                  ORDER BY rank LIMIT ?
-                  """;
+  public List<SearchResult> search(String query, String extension, String directory, int limit) {
+    StringBuilder sql =
+        new StringBuilder(
+            """
+        SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
+        FROM files_fts fts
+        JOIN files f ON f.path = fts.path
+        WHERE files_fts MATCH ?
+        """);
+
+    if (extension != null) sql.append("AND f.extension = ? ");
+    if (directory != null) sql.append("AND f.path LIKE ? ");
+    sql.append("ORDER BY rank LIMIT ?");
 
     List<SearchResult> results = new ArrayList<>();
-    try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-      stmt.setString(1, query);
-      if (scoped) {
-        stmt.setString(2, extension);
-        stmt.setInt(3, limit);
-      } else {
-        stmt.setInt(2, limit);
-      }
+    try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+      int i = 1;
+      stmt.setString(i++, query);
+      if (extension != null) stmt.setString(i++, extension);
+      if (directory != null) stmt.setString(i++, directory + "%");
+      stmt.setInt(i, limit);
+
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
           results.add(

@@ -85,7 +85,7 @@ public class CLI {
 
   private void runSearchLoop() {
     System.out.println("\nSearch ready. Type 'exit' or empty line to quit.");
-    System.out.println("Tip: use ext:<type> to filter by extension — e.g. 'main ext:java'");
+    System.out.println("Tip: use ext:<type> to filter by extension, dir:<path> to filter by directory - e.g. 'main ext:java dir:C/Users'");
 
     while (true) {
       System.out.print("> ");

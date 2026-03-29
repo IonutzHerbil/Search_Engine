@@ -6,7 +6,7 @@ import java.util.List;
 
 public class SearchEngine {
 
-  private static final int DEFAULT_LIMIT = 50;
+  private static final int DEFAULT_LIMIT = 200;
 
   private final FileRepository repository;
   private final SearchRequestParser parser;
@@ -24,6 +24,6 @@ public class SearchEngine {
     if (raw == null || raw.isBlank()) return List.of();
     SearchRequest request = parser.parse(raw);
     if (request.terms().isBlank()) return List.of();
-    return repository.search(request.terms(), request.extension(), limit);
+    return repository.search(request.terms(), request.extension(), request.directory(), limit);
   }
 }

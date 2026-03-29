@@ -62,7 +62,7 @@
 
                 <HBox spacing="6" alignment="CENTER_LEFT">
                     <padding><Insets top="10" right="16" bottom="6" left="16"/></padding>
-                    <TextField fx:id="searchField" promptText="Search... (or keyword ext:java)"
+                    <TextField fx:id="searchField" promptText="keyword  ext:java  dir:D:\path"
                                onAction="#onSearch" HBox.hgrow="ALWAYS"
                                styleClass="search-field"/>
                 </HBox>
