@@ -14,28 +14,28 @@ import javafx.stage.Stage;
 
 public class MainApp extends Application {
 
-    @Override
-    public void start(Stage stage) throws Exception {
-        IndexConfig      config      = IndexConfig.fromArgs(new String[0]);
-        Database         db          = new Database(config.dbPath());
-        FileRepository   repository  = new FileRepository(db);
-        ContentExtractor extractor   = new ContentExtractor();
-        SearchEngine     engine      = new SearchEngine(repository);
-        IndexerFactory   factory     = new IndexerFactory(repository, extractor);
+  @Override
+  public void start(Stage stage) throws Exception {
+    IndexConfig config = IndexConfig.fromArgs(new String[0]);
+    Database db = new Database(config.dbPath());
+    FileRepository repository = new FileRepository(db);
+    ContentExtractor extractor = new ContentExtractor();
+    SearchEngine engine = new SearchEngine(repository);
+    IndexerFactory factory = new IndexerFactory(repository, extractor);
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/gui/search.fxml"));
-        Scene scene = new Scene(loader.load());
+    FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/gui/search.fxml"));
+    Scene scene = new Scene(loader.load());
 
-        SearchController controller = loader.getController();
-        controller.init(factory, engine);
+    SearchController controller = loader.getController();
+    controller.init(factory, engine);
 
-        Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
-        stage.setTitle("Search Engine");
-        stage.setScene(scene);
-        stage.show();
-    }
+    Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
+    stage.setTitle("Search Engine");
+    stage.setScene(scene);
+    stage.show();
+  }
 
-    public static void main(String[] args) {
-        launch(args);
-    }
+  public static void main(String[] args) {
+    launch(args);
+  }
 }
