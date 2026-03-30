@@ -1,5 +1,6 @@
 package app.gui;
 
+import app.db.FileRepository;
 import app.indexer.FileIndexer;
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
@@ -33,6 +34,8 @@ public class SearchController {
 
   @FXML private TextField searchField;
   @FXML private TextField pathField;
+  @FXML private TextField dirFilter;
+  @FXML private ComboBox<String> extFilter;
   @FXML private ListView<SearchResult> resultsList;
   @FXML private TextFlow previewFlow;
   @FXML private TextFlow fullFileFlow;
@@ -52,12 +55,14 @@ public class SearchController {
 
   private SearchEngine engine;
   private IndexerFactory factory;
+  private FileRepository repository;
   private PauseTransition liveSearchDelay;
   private String currentFullFileContent;
 
-  public void init(IndexerFactory factory, SearchEngine engine) {
+  public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
     this.factory = factory;
     this.engine = engine;
+    this.repository = repository;
 
     progressBar.setProgress(0);
     progressBar.setVisible(false);
@@ -67,6 +72,7 @@ public class SearchController {
 
     setupResultsList();
     setupLiveSearch();
+    refreshExtensions();
   }
 
   private void setupResultsList() {
@@ -136,12 +142,15 @@ public class SearchController {
 
   private void setupLiveSearch() {
     liveSearchDelay = new PauseTransition(Duration.millis(350));
-    liveSearchDelay.setOnFinished(
-        e -> {
-          String query = searchField.getText().trim();
-          if (!query.isEmpty()) performSearch(query);
-        });
+    liveSearchDelay.setOnFinished(e -> triggerSearch());
     searchField.textProperty().addListener((obs, old, val) -> liveSearchDelay.playFromStart());
+    extFilter.valueProperty().addListener((obs, old, val) -> triggerSearch());
+    dirFilter.textProperty().addListener((obs, old, val) -> liveSearchDelay.playFromStart());
+  }
+
+  private void triggerSearch() {
+    String query = searchField.getText().trim();
+    if (!query.isEmpty()) performSearch(query);
   }
 
   @FXML
@@ -156,15 +165,39 @@ public class SearchController {
   @FXML
   private void onSearch() {
     liveSearchDelay.stop();
-    String query = searchField.getText().trim();
-    if (!query.isEmpty()) performSearch(query);
+    triggerSearch();
+  }
+
+  @FXML
+  private void onClearFilters() {
+    extFilter.setValue(null);
+    extFilter.setPromptText("ext");
+    dirFilter.clear();
+    triggerSearch();
   }
 
   private void performSearch(String query) {
-    List<SearchResult> results = engine.search(query);
+    String ext = extFilter.getValue();
+    if (ext != null && ext.isBlank()) ext = null;
+
+    String dir = dirFilter.getText().trim();
+    if (dir.isBlank()) dir = null;
+
+    StringBuilder fullQuery = new StringBuilder(query);
+    if (ext != null) fullQuery.append(" ext:").append(ext);
+    if (dir != null) fullQuery.append(" dir:").append(dir);
+
+    List<SearchResult> results = engine.search(fullQuery.toString());
     resultsList.getItems().setAll(results);
     resultCountLabel.setText(results.size() + " result" + (results.size() == 1 ? "" : "s"));
     if (!results.isEmpty()) resultsList.getSelectionModel().selectFirst();
+  }
+
+  private void refreshExtensions() {
+    String current = extFilter.getValue();
+    extFilter.getItems().clear();
+    extFilter.getItems().addAll(repository.getDistinctExtensions());
+    if (current != null) extFilter.setValue(current);
   }
 
   @FXML
@@ -211,6 +244,8 @@ public class SearchController {
 
                   reportBox.setVisible(true);
                   reportBox.setManaged(true);
+
+                  refreshExtensions();
                 }));
 
     task.setOnFailed(
@@ -314,6 +349,6 @@ public class SearchController {
   private String shortenPath(String path, int max) {
     if (path == null) return "";
     if (path.length() <= max) return path;
-    return "..." + path.substring(path.length() - 52);
+    return "..." + path.substring(path.length() - (max - 1));
   }
 }

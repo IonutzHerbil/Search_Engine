@@ -30,7 +30,7 @@ public class MainApp extends Application {
     scene.getStylesheets().add(getClass().getResource("/app/gui/style.css").toExternalForm());
 
     SearchController controller = loader.getController();
-    controller.init(factory, engine);
+    controller.init(factory, engine, repository);
 
     stage.setTitle("Search Engine");
     stage.setScene(scene);

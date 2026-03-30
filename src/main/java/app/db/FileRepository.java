@@ -146,4 +146,18 @@ public class FileRepository {
       System.err.println("[DELETE ERROR] " + e.getMessage());
     }
   }
+
+  public List<String> getDistinctExtensions() {
+    List<String> extensions = new ArrayList<>();
+    try (PreparedStatement stmt =
+        connection.prepareStatement(
+            "SELECT DISTINCT extension FROM files WHERE extension IS NOT NULL AND extension != '' ORDER BY extension")) {
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) extensions.add(rs.getString(1));
+      }
+    } catch (SQLException e) {
+      System.err.println("[QUERY ERROR] " + e.getMessage());
+    }
+    return extensions;
+  }
 }
