@@ -3,9 +3,12 @@ package app.gui;
 import app.db.FileRepository;
 import app.model.SearchResult;
 import app.search.SearchEngine;
+import app.search.SortOrder;
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -22,6 +25,8 @@ public class SearchViewModel {
   private final ObservableList<String> availableExtensions = FXCollections.observableArrayList();
   private final StringProperty resultCount = new SimpleStringProperty("");
   private final BooleanProperty hasMore = new SimpleBooleanProperty(false);
+  private final ObjectProperty<SortOrder> sortOrder =
+          new SimpleObjectProperty<>(SortOrder.RELEVANCE);
 
   private String currentQuery = "";
   private int currentOffset = 0;
@@ -34,7 +39,7 @@ public class SearchViewModel {
   public void search(String terms, String ext, String dir) {
     currentQuery = buildQuery(terms, ext, dir);
     currentOffset = 0;
-    List<SearchResult> found = engine.search(currentQuery, PAGE_SIZE, 0);
+    List<SearchResult> found = engine.search(currentQuery, PAGE_SIZE, 0, sortOrder.get());
     results.setAll(found);
     currentOffset = found.size();
     hasMore.set(found.size() == PAGE_SIZE);
@@ -43,7 +48,7 @@ public class SearchViewModel {
 
   public void loadMore() {
     if (!hasMore.get() || currentQuery.isBlank()) return;
-    List<SearchResult> more = engine.search(currentQuery, PAGE_SIZE, currentOffset);
+    List<SearchResult> more = engine.search(currentQuery, PAGE_SIZE, currentOffset, sortOrder.get());
     results.addAll(more);
     currentOffset += more.size();
     hasMore.set(more.size() == PAGE_SIZE);
@@ -52,6 +57,14 @@ public class SearchViewModel {
 
   public void refreshExtensions() {
     availableExtensions.setAll(repository.getDistinctExtensions());
+  }
+
+  public void setSortOrder(SortOrder order) {
+    sortOrder.set(order);
+  }
+
+  public ObjectProperty<SortOrder> sortOrderProperty() {
+    return sortOrder;
   }
 
   public ObservableList<SearchResult> getResults() {

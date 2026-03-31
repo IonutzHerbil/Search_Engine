@@ -2,6 +2,8 @@ package app.db;
 
 import app.model.FileRecord;
 import app.model.SearchResult;
+import app.search.SortOrder;
+
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
@@ -66,24 +68,26 @@ public class FileRepository {
     }
   }
 
-  public List<SearchResult> search(String query, String extension, String directory, int limit) {
-    return search(query, extension, directory, limit, 0);
-  }
-
   public List<SearchResult> search(
-      String query, String extension, String directory, int limit, int offset) {
-    StringBuilder sql =
-        new StringBuilder(
-            """
-        SELECT f.path, f.name, f.extension, f.lastModified, f.preview, rank
-        FROM files_fts fts
-        JOIN files f ON f.path = fts.path
-        WHERE files_fts MATCH ?
-        """);
+          String query, String extension, String directory, int limit, int offset, SortOrder sort) {
+
+    StringBuilder sql = new StringBuilder("""
+      SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, rank
+      FROM files_fts fts
+      JOIN files f ON f.path = fts.path
+      WHERE files_fts MATCH ?
+      """);
 
     if (extension != null) sql.append("AND f.extension = ? ");
     if (directory != null) sql.append("AND f.path LIKE ? ");
-    sql.append("ORDER BY rank LIMIT ? OFFSET ?");
+
+    sql.append(switch (sort) {
+      case DATE -> "ORDER BY f.lastModified DESC ";
+      case SIZE -> "ORDER BY f.sizeBytes DESC ";
+      default ->  "ORDER BY rank ";
+    });
+
+    sql.append("LIMIT ? OFFSET ?");
 
     List<SearchResult> results = new ArrayList<>();
     try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
@@ -96,20 +100,28 @@ public class FileRepository {
 
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(
-              new SearchResult(
+          results.add(new SearchResult(
                   rs.getString("path"),
                   rs.getString("name"),
                   rs.getString("extension"),
                   rs.getString("preview"),
                   rs.getDouble("rank"),
-                  rs.getLong("lastModified")));
+                  rs.getLong("lastModified"),
+                  rs.getLong("sizeBytes")));
         }
       }
     } catch (SQLException e) {
       System.err.println("[SEARCH ERROR] " + e.getMessage());
     }
     return results;
+  }
+
+  public List<SearchResult> search(String query, String extension, String directory, int limit, int offset) {
+    return search(query, extension, directory, limit, offset, SortOrder.RELEVANCE);
+  }
+
+  public List<SearchResult> search(String query, String extension, String directory, int limit) {
+    return search(query, extension, directory, limit, 0, SortOrder.RELEVANCE);
   }
 
   public void deleteStale(String rootPath) {

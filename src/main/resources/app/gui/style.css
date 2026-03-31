@@ -318,3 +318,10 @@
     -fx-font-family: "Consolas", monospace;
     -fx-padding: 1 6 1 0;
 }
+
+.cell-meta {
+    -fx-font-size: 9px;
+    -fx-text-fill: #4c566a;
+    -fx-font-family: "Consolas", monospace;
+    -fx-padding: 0 8 0 0;
+}

@@ -1,6 +1,9 @@
 package app.gui;
 
 import app.model.SearchResult;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -15,16 +18,22 @@ import javafx.util.Callback;
 
 public class ResultCellFactory implements Callback<ListView<SearchResult>, ListCell<SearchResult>> {
 
+  private static final DateTimeFormatter DATE_FMT =
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
+
   @Override
   public ListCell<SearchResult> call(ListView<SearchResult> lv) {
     return new ListCell<>() {
       private final VBox box = new VBox(2);
       private final HBox topRow = new HBox(6);
+      private final HBox metaRow = new HBox(10);
       private final Label rankLabel = new Label();
       private final Label nameLabel = new Label();
       private final Label extLabel = new Label();
       private final Label pathLabel = new Label();
       private final Label snippetLabel = new Label();
+      private final Label sizeLabel = new Label();
+      private final Label dateLabel = new Label();
       private final Region spacer = new Region();
 
       {
@@ -35,18 +44,23 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         extLabel.getStyleClass().add("cell-ext");
         pathLabel.getStyleClass().add("cell-path");
         snippetLabel.getStyleClass().add("cell-snippet");
+        sizeLabel.getStyleClass().add("cell-meta");
+        dateLabel.getStyleClass().add("cell-meta");
 
-        Tooltip.install(
-            rankLabel, new Tooltip("BM25 relevance score — higher means more relevant"));
+        Tooltip.install(rankLabel,
+                new Tooltip("BM25 relevance score — higher means more relevant"));
 
         HBox.setHgrow(spacer, Priority.ALWAYS);
         topRow.setAlignment(Pos.CENTER_LEFT);
         topRow.getChildren().addAll(rankLabel, nameLabel, spacer, extLabel);
 
+        metaRow.setAlignment(Pos.CENTER_LEFT);
+        metaRow.getChildren().addAll(sizeLabel, dateLabel);
+
         pathLabel.setMaxWidth(Double.MAX_VALUE);
         snippetLabel.setMaxWidth(Double.MAX_VALUE);
 
-        box.getChildren().addAll(topRow, pathLabel, snippetLabel);
+        box.getChildren().addAll(topRow, pathLabel, metaRow, snippetLabel);
         box.setMaxWidth(Double.MAX_VALUE);
       }
 
@@ -64,6 +78,8 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         String ext = r.extension();
         extLabel.setText(ext != null && !ext.isBlank() ? ext : "—");
         pathLabel.setText(shortenPath(r.path(), 60));
+        sizeLabel.setText(formatSize(r.sizeBytes()));
+        dateLabel.setText(DATE_FMT.format(Instant.ofEpochMilli(r.lastModified())));
 
         if (r.snippet() != null && !r.snippet().isBlank()) {
           String line = r.snippet().lines().findFirst().orElse("").trim();
@@ -77,6 +93,12 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         }
 
         setGraphic(box);
+      }
+
+      private String formatSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        return String.format("%.1f MB", bytes / (1024.0 * 1024));
       }
 
       private String shortenPath(String path, int max) {

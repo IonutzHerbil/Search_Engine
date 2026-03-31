@@ -72,6 +72,7 @@
                               prefWidth="90" styleClass="compact-field"/>
                     <TextField fx:id="dirFilter" promptText="dir filter..."
                                HBox.hgrow="ALWAYS" styleClass="compact-field"/>
+                    <ChoiceBox fx:id="sortChoice" styleClass="compact-field"/>
                     <Button text="Clear" onAction="#onClearFilters" styleClass="btn-flat"/>
                 </HBox>
                 <HBox alignment="CENTER_LEFT" spacing="8">

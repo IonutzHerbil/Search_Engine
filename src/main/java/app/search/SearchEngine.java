@@ -16,19 +16,19 @@ public class SearchEngine {
     this.parser = new SearchRequestParser();
   }
 
+  public List<SearchResult> search(String raw) {
+    return search(raw, DEFAULT_LIMIT, 0, SortOrder.RELEVANCE);
+  }
+
   public List<SearchResult> search(String raw, int limit, int offset) {
+    return search(raw, limit, offset, SortOrder.RELEVANCE);
+  }
+
+  public List<SearchResult> search(String raw, int limit, int offset, SortOrder sort) {
     if (raw == null || raw.isBlank()) return List.of();
     SearchRequest request = parser.parse(raw);
     if (request.terms().isBlank()) return List.of();
     return repository.search(
-        request.terms(), request.extension(), request.directory(), limit, offset);
-  }
-
-  public List<SearchResult> search(String raw, int limit) {
-    return search(raw, limit, 0);
-  }
-
-  public List<SearchResult> search(String raw) {
-    return search(raw, DEFAULT_LIMIT, 0);
+            request.terms(), request.extension(), request.directory(), limit, offset, sort);
   }
 }

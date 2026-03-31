@@ -16,6 +16,7 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import app.search.SortOrder;
 
 public class SearchController {
 
@@ -40,6 +41,7 @@ public class SearchController {
   @FXML private HBox reportBox;
   @FXML private TabPane tabPane;
   @FXML private Button loadMoreButton;
+  @FXML private ChoiceBox<String> sortChoice;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -61,7 +63,7 @@ public class SearchController {
   }
 
   private void bindUI() {
-    resultsList.setFixedCellSize(72);
+    resultsList.setFixedCellSize(90);
     resultsList.setCellFactory(new ResultCellFactory());
     resultsList.setItems(searchVM.getResults());
     resultsList
@@ -88,6 +90,19 @@ public class SearchController {
     reportBox.managedProperty().bind(indexVM.reportProperty().isNotNull());
     loadMoreButton.visibleProperty().bind(searchVM.hasMoreProperty());
     loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
+
+    sortChoice.setItems(javafx.collections.FXCollections.observableArrayList(
+            "Relevance", "Date", "Size"));
+    sortChoice.setValue("Relevance");
+    sortChoice.valueProperty().addListener((obs, old, val) -> {
+      searchVM.setSortOrder(switch (val) {
+        case "Date" -> SortOrder.DATE;
+        case "Size" -> SortOrder.SIZE;
+        default -> SortOrder.RELEVANCE;
+      });
+      triggerSearch();
+    });
+
   }
 
   private void setupLiveSearch() {
