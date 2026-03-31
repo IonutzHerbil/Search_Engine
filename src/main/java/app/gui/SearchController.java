@@ -1,5 +1,6 @@
 package app.gui;
 
+import app.config.IndexConfig;
 import app.db.FileRepository;
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
@@ -36,7 +37,6 @@ public class SearchController {
   @FXML private Label filePathLabel;
   @FXML private Label fileExtLabel;
   @FXML private Label reportIndexed;
-  @FXML private Label reportSkipped;
   @FXML private Label reportDirs;
   @FXML private Label reportErrors;
   @FXML private Label reportTime;
@@ -45,7 +45,7 @@ public class SearchController {
   @FXML private TabPane tabPane;
   @FXML private Button loadMoreButton;
   @FXML private ChoiceBox<String> sortChoice;
-  @FXML private TextField ignoredExtsField;
+  @FXML private TextArea ignoredExtsField;
   @FXML private TextArea ignoredDirsField;
   @FXML private VBox settingsBox;
   @FXML private Button settingsToggle;
@@ -70,9 +70,15 @@ public class SearchController {
 
     bindUI();
 
-    ignoredExtsField.setText("class, obj, o, zip, tar, gz, rar, 7z, tmp, bak, lnk, db, sqlite");
+    ignoredExtsField.setText(
+        IndexConfig.DEFAULT_IGNORED_EXTS.stream()
+            .sorted()
+            .collect(java.util.stream.Collectors.joining("\n")));
+
     ignoredDirsField.setText(
-        ".hidden\nnode_modules\ntarget\nbuild\ncache\ndist\nAppData\nenv\nflutter\nscoop");
+        IndexConfig.DEFAULT_IGNORED_DIR_NAMES.stream()
+            .sorted()
+            .collect(java.util.stream.Collectors.joining("\n")));
 
     setupLiveSearch();
     searchVM.refreshExtensions();
@@ -162,7 +168,7 @@ public class SearchController {
   @FXML
   private void onIndex() {
     Set<String> ignoredExts =
-        Arrays.stream(ignoredExtsField.getText().split(","))
+        Arrays.stream(ignoredExtsField.getText().split("[,\n]"))
             .map(String::trim)
             .filter(s -> !s.isBlank())
             .collect(java.util.stream.Collectors.toSet());

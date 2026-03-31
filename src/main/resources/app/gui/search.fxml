@@ -48,17 +48,19 @@
                     <padding><Insets top="6" right="16" bottom="10" left="16"/></padding>
 
                     <Label text="SKIP THESE EXTENSIONS"
-                           style="-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #4c566a;"/>
+                           style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #4c566a;"/>
                     <Label text="Comma separated — e.g. exe, dll, class"
-                           style="-fx-font-size: 9px; -fx-text-fill: #4c566a;"/>
-                    <TextField fx:id="ignoredExtsField"
-                               styleClass="compact-field"/>
+                           style="-fx-font-size: 12px; -fx-text-fill: #4c566a;"/>
+                    <TextArea fx:id="ignoredExtsField"
+                              prefRowCount="4"
+                              styleClass="compact-field"
+                              style="-fx-font-family: 'Consolas', monospace; -fx-font-size: 11px;"/>
 
                     <Label text="SKIP THESE DIRECTORIES"
-                           style="-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #4c566a;
+                           style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #4c566a;
                   -fx-padding: 4 0 0 0;"/>
                     <Label text="One name per line — e.g. node_modules, .git"
-                           style="-fx-font-size: 9px; -fx-text-fill: #4c566a;"/>
+                           style="-fx-font-size: 12px; -fx-text-fill: #4c566a;"/>
                     <TextArea fx:id="ignoredDirsField"
                               prefRowCount="4"
                               styleClass="compact-field"

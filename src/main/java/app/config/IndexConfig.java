@@ -3,6 +3,7 @@ package app.config;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public record IndexConfig(
     Path rootDirectory,
@@ -10,29 +11,57 @@ public record IndexConfig(
     Set<String> ignoredExtensions,
     String dbPath,
     String reportFormat) {
-  private static final Set<String> DEFAULT_IGNORED_DIRS =
-      Set.of(
-          "^\\..*",
-          ".*node_modules.*",
-          ".*target.*",
-          ".*build.*",
-          ".*cache.*",
-          ".*dist.*",
-          ".*env.*",
-          ".*flutter.*",
-          ".*scoop.*",
-          ".*AppData.*");
 
-  private static final Set<String> DEFAULT_IGNORED_EXTS =
+  public static final Set<String> DEFAULT_IGNORED_DIR_NAMES =
       Set.of(
-          "class", "obj", "o", "zip", "tar", "gz", "rar", "7z", "tmp", "bak", "lnk", "db",
-          "sqlite");
+          ".hidden",
+          ".idea",
+          ".git",
+          "node_modules",
+          "target",
+          "build",
+          "cache",
+          "dist",
+          "env",
+          "venv",
+          "AppData",
+          "flutter",
+          "scoop",
+          "__pycache__");
+
+  public static final Set<String> DEFAULT_IGNORED_EXTS =
+      Set.of(
+          "class",
+          "obj",
+          "o",
+          "pyc",
+          "pyo",
+          "zip",
+          "tar",
+          "gz",
+          "rar",
+          "7z",
+          "tmp",
+          "bak",
+          "lnk",
+          "db",
+          "sqlite",
+          "lock",
+          "iml",
+          "suo",
+          "user",
+          "map",
+          "DS_Store");
+
+  private static final Set<String> DEFAULT_IGNORED_DIRS =
+      DEFAULT_IGNORED_DIR_NAMES.stream()
+          .map(name -> name.startsWith(".") ? "^\\" + name + ".*" : ".*" + name + ".*")
+          .collect(Collectors.toUnmodifiableSet());
 
   public static IndexConfig fromArgs(String[] args) {
     Path root = args.length > 0 ? Paths.get(args[0]) : Paths.get(System.getProperty("user.home"));
     String db = args.length > 1 ? args[1] : "vision_index.db";
     String format = args.length > 2 ? args[2].toUpperCase() : "TEXT";
-
     return new IndexConfig(root, DEFAULT_IGNORED_DIRS, DEFAULT_IGNORED_EXTS, db, format);
   }
 
