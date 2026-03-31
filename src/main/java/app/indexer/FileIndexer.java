@@ -48,13 +48,13 @@ public class FileIndexer {
                 throws IOException {
               Path real = dir.toRealPath();
               if (!visitedRealPaths.add(real)) {
-                stats.recordSkipped();
+                stats.recordFiltered();
                 return FileVisitResult.SKIP_SUBTREE;
               }
 
               String name = dir.getFileName() != null ? dir.getFileName().toString() : "";
               if (filter.shouldSkipDir(name)) {
-                stats.recordSkipped();
+                stats.recordFiltered();
                 return FileVisitResult.SKIP_SUBTREE;
               }
               stats.recordDirectory();
@@ -68,7 +68,7 @@ public class FileIndexer {
               String ext = (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
 
               if (filter.shouldSkipFile(ext)) {
-                stats.recordSkipped();
+                stats.recordFiltered();
                 return FileVisitResult.CONTINUE;
               }
 
@@ -77,7 +77,7 @@ public class FileIndexer {
                 long fileModifiedTime = attrs.lastModifiedTime().toMillis();
 
                 if (fileModifiedTime == repository.getLastModified(absolutePath)) {
-                  stats.recordSkipped();
+                  stats.recordUpToDate();
                   return FileVisitResult.CONTINUE;
                 }
 

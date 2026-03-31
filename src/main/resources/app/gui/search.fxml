@@ -83,8 +83,11 @@
                     <Label fx:id="reportIndexed" text="0" styleClass="rpt-val"/>
                     <Label text=" indexed" styleClass="rpt-lbl"/>
                     <Label text="  ·  " styleClass="rpt-sep"/>
-                    <Label fx:id="reportSkipped" text="0" styleClass="rpt-val"/>
-                    <Label text=" skipped" styleClass="rpt-lbl"/>
+                    <Label fx:id="reportUpToDate" text="0" styleClass="rpt-val"/>
+                    <Label text=" up to date" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportFiltered" text="0" styleClass="rpt-val"/>
+                    <Label text=" filtered" styleClass="rpt-lbl"/>
                     <Label text="  ·  " styleClass="rpt-sep"/>
                     <Label fx:id="reportDirs" text="0" styleClass="rpt-val"/>
                     <Label text=" dirs" styleClass="rpt-lbl"/>

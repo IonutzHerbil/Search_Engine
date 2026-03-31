@@ -51,6 +51,8 @@ public class SearchController {
   @FXML private Button settingsToggle;
   @FXML private ChoiceBox<String> reportFormatChoice;
   @FXML private Button exportReportButton;
+  @FXML private Label reportUpToDate;
+  @FXML private Label reportFiltered;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -106,7 +108,7 @@ public class SearchController {
     loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
 
     reportFormatChoice.setItems(
-            javafx.collections.FXCollections.observableArrayList("TEXT", "JSON"));
+        javafx.collections.FXCollections.observableArrayList("TEXT", "JSON"));
     reportFormatChoice.setValue("TEXT");
     exportReportButton.disableProperty().bind(indexVM.reportProperty().isNull());
 
@@ -228,8 +230,9 @@ public class SearchController {
 
   private void updateReportBox(IndexReport report) {
     if (report == null) return;
-    reportIndexed.setText(String.valueOf(report.filesFound()));
-    reportSkipped.setText(String.valueOf(report.skipped()));
+    reportIndexed.setText(String.valueOf(report.filesIndexed()));
+    reportUpToDate.setText(String.valueOf(report.filesUpToDate()));
+    reportFiltered.setText(String.valueOf(report.filesFiltered()));
     reportDirs.setText(String.valueOf(report.directoriesVisited()));
     reportErrors.setText(String.valueOf(report.errors()));
     reportTime.setText(String.format("%.2fs", report.elapsedSeconds()));
@@ -246,6 +249,7 @@ public class SearchController {
     }
     return sb.toString();
   }
+
   @FXML
   private void onExportReport() {
     IndexReport report = indexVM.reportProperty().get();
@@ -258,8 +262,9 @@ public class SearchController {
     javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
     chooser.setTitle("Save Report");
     chooser.setInitialFileName("index_report" + ext);
-    chooser.getExtensionFilters().add(
-            new javafx.stage.FileChooser.ExtensionFilter(format + " file", "*" + ext));
+    chooser
+        .getExtensionFilters()
+        .add(new javafx.stage.FileChooser.ExtensionFilter(format + " file", "*" + ext));
 
     java.io.File file = chooser.showSaveDialog(pathField.getScene().getWindow());
     if (file == null) return;
@@ -277,32 +282,46 @@ public class SearchController {
   }
 
   private String toText(IndexReport report) {
-    return String.format("""
+    return String.format(
+        """
         ========================================
-        Root      : %s
-        Indexed   : %d
-        Skipped   : %d
-        Dirs      : %d
-        Errors    : %d
-        Time      : %.2fs
+        Root        : %s
+        Indexed     : %d
+        Up to date  : %d
+        Filtered    : %d
+        Dirs        : %d
+        Errors      : %d
+        Time        : %.2fs
         ========================================
         """,
-            report.rootDir(), report.filesFound(), report.skipped(),
-            report.directoriesVisited(), report.errors(), report.elapsedSeconds());
+        report.rootDir(),
+        report.filesIndexed(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
+        report.directoriesVisited(),
+        report.errors(),
+        report.elapsedSeconds());
   }
 
   private String toJson(IndexReport report) {
-    return String.format("""
+    return String.format(
+        """
         {
           "rootDir": "%s",
-          "filesFound": %d,
-          "skipped": %d,
+          "filesIndexed": %d,
+          "filesUpToDate": %d,
+          "filesFiltered": %d,
           "directoriesVisited": %d,
           "errors": %d,
           "elapsedSeconds": %.2f
         }
         """,
-            report.rootDir(), report.filesFound(), report.skipped(),
-            report.directoriesVisited(), report.errors(), report.elapsedSeconds());
+        report.rootDir(),
+        report.filesIndexed(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
+        report.directoriesVisited(),
+        report.errors(),
+        report.elapsedSeconds());
   }
 }

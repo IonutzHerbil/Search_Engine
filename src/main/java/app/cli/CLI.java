@@ -56,28 +56,31 @@ public class CLI {
 
   private void printReportText(IndexReport report) {
     System.out.println("========================================");
-    System.out.printf("Finished in %.2fs%n", report.elapsedSeconds());
-    System.out.printf("Files Indexed : %d%n", report.filesFound());
-    System.out.printf("Files Skipped : %d%n", report.skipped());
-    System.out.printf("Dirs Visited  : %d%n", report.directoriesVisited());
-    System.out.printf("Errors        : %d%n", report.errors());
+    System.out.printf("Finished in    %.2fs%n", report.elapsedSeconds());
+    System.out.printf("Indexed        : %d%n", report.filesIndexed());
+    System.out.printf("Up to date     : %d%n", report.filesUpToDate());
+    System.out.printf("Filtered out   : %d%n", report.filesFiltered());
+    System.out.printf("Dirs visited   : %d%n", report.directoriesVisited());
+    System.out.printf("Errors         : %d%n", report.errors());
   }
 
   private void printReportJson(IndexReport report) {
     System.out.printf(
         """
-            {
-              "rootDir": "%s",
-              "filesFound": %d,
-              "skipped": %d,
-              "directoriesVisited": %d,
-              "errors": %d,
-              "elapsedSeconds": %.2f
-            }
-            """,
+                {
+                  "rootDir": "%s",
+                  "filesIndexed": %d,
+                  "filesUpToDate": %d,
+                  "filesFiltered": %d,
+                  "directoriesVisited": %d,
+                  "errors": %d,
+                  "elapsedSeconds": %.2f
+                }
+                """,
         report.rootDir(),
-        report.filesFound(),
-        report.skipped(),
+        report.filesIndexed(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
         report.directoriesVisited(),
         report.errors(),
         report.elapsedSeconds());
