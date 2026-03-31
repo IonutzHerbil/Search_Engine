@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.TextFlow?>
 
-<SplitPane dividerPositions="0.35"
+<SplitPane dividerPositions="0.5"
            xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
            fx:controller="app.gui.SearchController"
