@@ -30,6 +30,14 @@
                     <Button text="Browse" onAction="#onBrowse" styleClass="btn-flat"/>
                     <Button text="Index"  onAction="#onIndex"  styleClass="btn-accent"/>
                 </HBox>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <padding><Insets top="0" right="16" bottom="6" left="16"/></padding>
+                    <Label text="Report format:" styleClass="status-text"/>
+                    <ChoiceBox fx:id="reportFormatChoice" styleClass="compact-field"/>
+                    <Button text="Export Report" fx:id="exportReportButton"
+                            onAction="#onExportReport" styleClass="btn-flat"
+                            disable="true"/>
+                </HBox>
                 <HBox alignment="CENTER_LEFT">
                     <padding><Insets top="4" right="16" bottom="0" left="16"/></padding>
                     <Button text="▸ Configure ignore rules" onAction="#onToggleSettings"

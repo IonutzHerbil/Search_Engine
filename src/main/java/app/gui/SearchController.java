@@ -49,6 +49,8 @@ public class SearchController {
   @FXML private TextArea ignoredDirsField;
   @FXML private VBox settingsBox;
   @FXML private Button settingsToggle;
+  @FXML private ChoiceBox<String> reportFormatChoice;
+  @FXML private Button exportReportButton;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -102,6 +104,11 @@ public class SearchController {
     reportBox.managedProperty().bind(indexVM.reportProperty().isNotNull());
     loadMoreButton.visibleProperty().bind(searchVM.hasMoreProperty());
     loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
+
+    reportFormatChoice.setItems(
+            javafx.collections.FXCollections.observableArrayList("TEXT", "JSON"));
+    reportFormatChoice.setValue("TEXT");
+    exportReportButton.disableProperty().bind(indexVM.reportProperty().isNull());
 
     sortChoice.setItems(
         javafx.collections.FXCollections.observableArrayList("Relevance", "Date", "Size"));
@@ -238,5 +245,64 @@ public class SearchController {
       }
     }
     return sb.toString();
+  }
+  @FXML
+  private void onExportReport() {
+    IndexReport report = indexVM.reportProperty().get();
+    if (report == null) return;
+
+    String format = reportFormatChoice.getValue();
+    String content = format.equals("JSON") ? toJson(report) : toText(report);
+    String ext = format.equals("JSON") ? ".json" : ".txt";
+
+    javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+    chooser.setTitle("Save Report");
+    chooser.setInitialFileName("index_report" + ext);
+    chooser.getExtensionFilters().add(
+            new javafx.stage.FileChooser.ExtensionFilter(format + " file", "*" + ext));
+
+    java.io.File file = chooser.showSaveDialog(pathField.getScene().getWindow());
+    if (file == null) return;
+
+    try {
+      java.nio.file.Files.writeString(file.toPath(), content);
+      statusLabel.textProperty().unbind();
+      statusLabel.setText("Report saved to " + file.getName());
+      statusLabel.textProperty().bind(indexVM.statusProperty());
+    } catch (java.io.IOException e) {
+      statusLabel.textProperty().unbind();
+      statusLabel.setText("Failed to save report: " + e.getMessage());
+      statusLabel.textProperty().bind(indexVM.statusProperty());
+    }
+  }
+
+  private String toText(IndexReport report) {
+    return String.format("""
+        ========================================
+        Root      : %s
+        Indexed   : %d
+        Skipped   : %d
+        Dirs      : %d
+        Errors    : %d
+        Time      : %.2fs
+        ========================================
+        """,
+            report.rootDir(), report.filesFound(), report.skipped(),
+            report.directoriesVisited(), report.errors(), report.elapsedSeconds());
+  }
+
+  private String toJson(IndexReport report) {
+    return String.format("""
+        {
+          "rootDir": "%s",
+          "filesFound": %d,
+          "skipped": %d,
+          "directoriesVisited": %d,
+          "errors": %d,
+          "elapsedSeconds": %.2f
+        }
+        """,
+            report.rootDir(), report.filesFound(), report.skipped(),
+            report.directoriesVisited(), report.errors(), report.elapsedSeconds());
   }
 }
