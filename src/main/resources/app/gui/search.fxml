@@ -69,7 +69,7 @@
                 <HBox spacing="6" alignment="CENTER_LEFT">
                     <padding><Insets top="0" right="16" bottom="6" left="16"/></padding>
                     <ComboBox fx:id="extFilter" promptText="ext" editable="true"
-                              prefWidth="90" styleClass="compact-field"/>
+                              prefWidth="100" styleClass="compact-field"/>
                     <TextField fx:id="dirFilter" promptText="dir filter..."
                                HBox.hgrow="ALWAYS" styleClass="compact-field"/>
                     <ChoiceBox fx:id="sortChoice" styleClass="compact-field"/>
