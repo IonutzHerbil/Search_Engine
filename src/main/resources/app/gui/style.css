@@ -21,24 +21,24 @@
 }
 
 .title-icon {
-    -fx-font-size: 22px;
+    -fx-font-size: 25px;
     -fx-text-fill: #88c0d0;
 }
 
 .app-title {
-    -fx-font-size: 16px;
+    -fx-font-size: 19px;
     -fx-font-weight: 800;
     -fx-text-fill: #eceff4;
 }
 
 .app-subtitle {
-    -fx-font-size: 10px;
+    -fx-font-size: 13px;
     -fx-text-fill: #4c566a;
     -fx-font-family: "Consolas", monospace;
 }
 
 .compact-field {
-    -fx-font-size: 12px;
+    -fx-font-size: 15px;
     -fx-font-family: "Consolas", monospace;
     -fx-background-color: #3b4252;
     -fx-text-fill: #d8dee9;
@@ -55,7 +55,7 @@
 }
 
 .search-field {
-    -fx-font-size: 14px;
+    -fx-font-size: 17px;
     -fx-font-family: "Consolas", monospace;
     -fx-background-color: #3b4252;
     -fx-text-fill: #eceff4;
@@ -73,7 +73,7 @@
 }
 
 .btn-accent {
-    -fx-font-size: 12px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
     -fx-padding: 6 16;
     -fx-background-radius: 4;
@@ -91,7 +91,7 @@
 }
 
 .btn-flat {
-    -fx-font-size: 12px;
+    -fx-font-size: 15px;
     -fx-font-weight: 600;
     -fx-padding: 6 12;
     -fx-background-radius: 4;
@@ -112,12 +112,12 @@
 }
 
 .status-text {
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
     -fx-text-fill: #4c566a;
 }
 
 .result-count {
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
     -fx-text-fill: #88c0d0;
     -fx-font-weight: 600;
 }
@@ -144,20 +144,20 @@
 }
 
 .rpt-val {
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
     -fx-font-weight: 800;
     -fx-text-fill: #eceff4;
     -fx-font-family: "Consolas", monospace;
 }
 
 .rpt-lbl {
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
     -fx-text-fill: #4c566a;
 }
 
 .rpt-sep {
     -fx-text-fill: #434c5e;
-    -fx-font-size: 11px;
+    -fx-font-size: 14px;
 }
 
 .thin-sep .line {
@@ -202,13 +202,13 @@
 }
 
 .cell-name {
-    -fx-font-size: 13px;
+    -fx-font-size: 16px;
     -fx-font-weight: 700;
     -fx-text-fill: #eceff4;
 }
 
 .cell-ext {
-    -fx-font-size: 9px;
+    -fx-font-size: 12px;
     -fx-font-weight: 600;
     -fx-text-fill: #88c0d0;
     -fx-background-color: rgba(136, 192, 208, 0.12);
@@ -217,13 +217,13 @@
 }
 
 .cell-path {
-    -fx-font-size: 10px;
+    -fx-font-size: 13px;
     -fx-text-fill: #4c566a;
     -fx-font-family: "Consolas", monospace;
 }
 
 .cell-snippet {
-    -fx-font-size: 10px;
+    -fx-font-size: 13px;
     -fx-text-fill: #616e88;
     -fx-font-family: "Consolas", monospace;
 }
@@ -237,19 +237,19 @@
 }
 
 .file-title {
-    -fx-font-size: 14px;
+    -fx-font-size: 17px;
     -fx-font-weight: 800;
     -fx-text-fill: #eceff4;
 }
 
 .file-subtitle {
-    -fx-font-size: 10px;
+    -fx-font-size: 13px;
     -fx-text-fill: #4c566a;
     -fx-font-family: "Consolas", monospace;
 }
 
 .ext-pill {
-    -fx-font-size: 10px;
+    -fx-font-size: 13px;
     -fx-font-weight: 700;
     -fx-text-fill: #88c0d0;
     -fx-background-color: rgba(136, 192, 208, 0.12);
@@ -266,7 +266,7 @@
 }
 
 .preview-tabs > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
-    -fx-font-size: 12px;
+    -fx-font-size: 15px;
     -fx-font-weight: 600;
 }
 
