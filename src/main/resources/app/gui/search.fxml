@@ -74,9 +74,13 @@
                                HBox.hgrow="ALWAYS" styleClass="compact-field"/>
                     <Button text="Clear" onAction="#onClearFilters" styleClass="btn-flat"/>
                 </HBox>
-                <HBox alignment="CENTER_LEFT">
+                <HBox alignment="CENTER_LEFT" spacing="8">
                     <padding><Insets top="0" right="16" bottom="8" left="16"/></padding>
                     <Label fx:id="resultCountLabel" text="" styleClass="result-count"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="loadMoreButton" text="Load more"
+                            onAction="#onLoadMore" styleClass="btn-flat"
+                            visible="false" managed="false"/>
                 </HBox>
 
             </VBox>

@@ -39,6 +39,7 @@ public class SearchController {
   @FXML private ProgressBar progressBar;
   @FXML private HBox reportBox;
   @FXML private TabPane tabPane;
+  @FXML private Button loadMoreButton;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -85,6 +86,8 @@ public class SearchController {
 
     reportBox.visibleProperty().bind(indexVM.reportProperty().isNotNull());
     reportBox.managedProperty().bind(indexVM.reportProperty().isNotNull());
+    loadMoreButton.visibleProperty().bind(searchVM.hasMoreProperty());
+    loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
   }
 
   private void setupLiveSearch() {
@@ -132,6 +135,11 @@ public class SearchController {
   @FXML
   private void onViewFullFile() {
     tabPane.getSelectionModel().select(1);
+  }
+
+  @FXML
+  private void onLoadMore() {
+    searchVM.loadMore();
   }
 
   private void onResultSelected(SearchResult result) {

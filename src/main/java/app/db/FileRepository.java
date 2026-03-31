@@ -67,6 +67,11 @@ public class FileRepository {
   }
 
   public List<SearchResult> search(String query, String extension, String directory, int limit) {
+    return search(query, extension, directory, limit, 0);
+  }
+
+  public List<SearchResult> search(
+      String query, String extension, String directory, int limit, int offset) {
     StringBuilder sql =
         new StringBuilder(
             """
@@ -78,7 +83,7 @@ public class FileRepository {
 
     if (extension != null) sql.append("AND f.extension = ? ");
     if (directory != null) sql.append("AND f.path LIKE ? ");
-    sql.append("ORDER BY rank LIMIT ?");
+    sql.append("ORDER BY rank LIMIT ? OFFSET ?");
 
     List<SearchResult> results = new ArrayList<>();
     try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
@@ -86,7 +91,8 @@ public class FileRepository {
       stmt.setString(i++, query);
       if (extension != null) stmt.setString(i++, extension);
       if (directory != null) stmt.setString(i++, directory + "%");
-      stmt.setInt(i, limit);
+      stmt.setInt(i++, limit);
+      stmt.setInt(i, offset);
 
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
