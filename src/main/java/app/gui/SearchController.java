@@ -1,7 +1,6 @@
 package app.gui;
 
 import app.db.FileRepository;
-import app.indexer.FileIndexer;
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
 import app.model.SearchResult;
@@ -9,22 +8,10 @@ import app.search.SearchEngine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import javafx.animation.PauseTransition;
-import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -53,93 +40,51 @@ public class SearchController {
   @FXML private HBox reportBox;
   @FXML private TabPane tabPane;
 
-  private SearchEngine engine;
-  private IndexerFactory factory;
-  private FileRepository repository;
+  private SearchViewModel searchVM;
+  private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
 
-    public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
-    this.factory = factory;
-    this.engine = engine;
-    this.repository = repository;
+  public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
+    searchVM = new SearchViewModel(engine, repository);
+    indexVM = new IndexViewModel(factory);
 
-    progressBar.setProgress(0);
-    progressBar.setVisible(false);
-    progressBar.setManaged(false);
+    indexVM.setOnIndexComplete(
+        () -> {
+          searchVM.refreshExtensions();
+          updateReportBox(indexVM.reportProperty().get());
+        });
 
-    resultsList.setFixedCellSize(72);
-
-    setupResultsList();
+    bindUI();
     setupLiveSearch();
-    refreshExtensions();
+    searchVM.refreshExtensions();
   }
 
-  private void setupResultsList() {
-    resultsList.setCellFactory(
-        lv ->
-            new ListCell<>() {
-              private final VBox box = new VBox(2);
-              private final HBox topRow = new HBox(6);
-              private final Label nameLabel = new Label();
-              private final Label extLabel = new Label();
-              private final Label pathLabel = new Label();
-              private final Label snippetLabel = new Label();
-              private final Region spacer = new Region();
-              private final Label rankLabel=new Label();
-
-              {
-                box.setPadding(new Insets(8, 14, 8, 14));
-
-                nameLabel.getStyleClass().add("cell-name");
-                extLabel.getStyleClass().add("cell-ext");
-                pathLabel.getStyleClass().add("cell-path");
-                snippetLabel.getStyleClass().add("cell-snippet");
-                rankLabel.getStyleClass().add("cell-rank");
-
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                topRow.setAlignment(Pos.CENTER_LEFT);
-                topRow.getChildren().addAll(rankLabel, nameLabel, spacer, extLabel);
-
-                pathLabel.setMaxWidth(Double.MAX_VALUE);
-                snippetLabel.setMaxWidth(Double.MAX_VALUE);
-
-                box.getChildren().addAll(topRow, pathLabel, snippetLabel);
-                box.setMaxWidth(Double.MAX_VALUE);
-              }
-
-              @Override
-              protected void updateItem(SearchResult r, boolean empty) {
-                super.updateItem(r, empty);
-                if (empty || r == null) {
-                  setGraphic(null);
-                  return;
-                }
-
-                nameLabel.setText(r.name());
-                String ext = r.extension();
-                extLabel.setText(ext != null && !ext.isBlank() ? ext : "—");
-                pathLabel.setText(shortenPath(r.path(), 60));
-                rankLabel.setText(String.format("%.2f", Math.abs(r.score())));
-
-                if (r.snippet() != null && !r.snippet().isBlank()) {
-                  String line = r.snippet().lines().findFirst().orElse("").trim();
-                  snippetLabel.setText(line.length() > 80 ? line.substring(0, 80) + "…" : line);
-                  snippetLabel.setVisible(true);
-                  snippetLabel.setManaged(true);
-                } else {
-                  snippetLabel.setText("");
-                  snippetLabel.setVisible(false);
-                  snippetLabel.setManaged(false);
-                }
-
-                setGraphic(box);
-              }
-            });
-
+  private void bindUI() {
+    resultsList.setFixedCellSize(72);
+    resultsList.setCellFactory(new ResultCellFactory());
+    resultsList.setItems(searchVM.getResults());
     resultsList
         .getSelectionModel()
         .selectedItemProperty()
         .addListener((obs, old, selected) -> onResultSelected(selected));
+
+    extFilter.setItems(searchVM.getAvailableExtensions());
+
+    resultCountLabel.textProperty().bind(searchVM.resultCountProperty());
+
+    statusLabel.textProperty().bind(indexVM.statusProperty());
+
+    progressBar.visibleProperty().bind(indexVM.indexingProperty());
+    progressBar.managedProperty().bind(indexVM.indexingProperty());
+    progressBar
+        .progressProperty()
+        .bind(
+            javafx.beans.binding.Bindings.when(indexVM.indexingProperty())
+                .then(-1.0)
+                .otherwise(0.0));
+
+    reportBox.visibleProperty().bind(indexVM.reportProperty().isNotNull());
+    reportBox.managedProperty().bind(indexVM.reportProperty().isNotNull());
   }
 
   private void setupLiveSearch() {
@@ -152,7 +97,15 @@ public class SearchController {
 
   private void triggerSearch() {
     String query = searchField.getText().trim();
-    if (!query.isEmpty()) performSearch(query);
+    if (query.isBlank()) return;
+    searchVM.search(query, extFilter.getValue(), dirFilter.getText().trim());
+    if (!searchVM.getResults().isEmpty()) resultsList.getSelectionModel().selectFirst();
+  }
+
+  @FXML
+  private void onSearch() {
+    liveSearchDelay.stop();
+    triggerSearch();
   }
 
   @FXML
@@ -165,101 +118,20 @@ public class SearchController {
   }
 
   @FXML
-  private void onSearch() {
-    liveSearchDelay.stop();
-    triggerSearch();
+  private void onIndex() {
+    indexVM.index(pathField.getText().trim());
   }
 
   @FXML
   private void onClearFilters() {
     extFilter.setValue(null);
-    extFilter.setPromptText("ext");
     dirFilter.clear();
     triggerSearch();
   }
 
-  private void performSearch(String query) {
-    String ext = extFilter.getValue();
-    if (ext != null && ext.isBlank()) ext = null;
-
-    String dir = dirFilter.getText().trim();
-    if (dir.isBlank()) dir = null;
-
-    StringBuilder fullQuery = new StringBuilder(query);
-    if (ext != null) fullQuery.append(" ext:").append(ext);
-    if (dir != null) fullQuery.append(" dir:").append(dir);
-
-    List<SearchResult> results = engine.search(fullQuery.toString());
-    resultsList.getItems().setAll(results);
-    resultCountLabel.setText(results.size() + " result" + (results.size() == 1 ? "" : "s"));
-    if (!results.isEmpty()) resultsList.getSelectionModel().selectFirst();
-  }
-
-  private void refreshExtensions() {
-    String current = extFilter.getValue();
-    extFilter.getItems().clear();
-    extFilter.getItems().addAll(repository.getDistinctExtensions());
-    if (current != null) extFilter.setValue(current);
-  }
-
   @FXML
-  private void onIndex() {
-    String path = pathField.getText().trim();
-    if (path.isEmpty()) {
-      statusLabel.setText("Enter a directory path first.");
-      return;
-    }
-
-    FileIndexer indexer = factory.create(path);
-
-    reportBox.setVisible(false);
-    reportBox.setManaged(false);
-    progressBar.setVisible(true);
-    progressBar.setManaged(true);
-    progressBar.setProgress(-1);
-
-    Task<IndexReport> task =
-        new Task<>() {
-          @Override
-          protected IndexReport call() {
-            return indexer.index(
-                name -> Platform.runLater(() -> statusLabel.setText("Indexing: " + name)));
-          }
-        };
-
-    task.setOnRunning(e -> Platform.runLater(() -> statusLabel.setText("Indexing…")));
-
-    task.setOnSucceeded(
-        e ->
-            Platform.runLater(
-                () -> {
-                  IndexReport report = task.getValue();
-                  progressBar.setVisible(false);
-                  progressBar.setManaged(false);
-                  statusLabel.setText("Done.");
-
-                  reportIndexed.setText(String.valueOf(report.filesFound()));
-                  reportSkipped.setText(String.valueOf(report.skipped()));
-                  reportDirs.setText(String.valueOf(report.directoriesVisited()));
-                  reportErrors.setText(String.valueOf(report.errors()));
-                  reportTime.setText(String.format("%.2fs", report.elapsedSeconds()));
-
-                  reportBox.setVisible(true);
-                  reportBox.setManaged(true);
-
-                  refreshExtensions();
-                }));
-
-    task.setOnFailed(
-        e ->
-            Platform.runLater(
-                () -> {
-                  progressBar.setVisible(false);
-                  progressBar.setManaged(false);
-                  statusLabel.setText("Failed: " + task.getException().getMessage());
-                }));
-
-    new Thread(task).start();
+  private void onViewFullFile() {
+    tabPane.getSelectionModel().select(1);
   }
 
   private void onResultSelected(SearchResult result) {
@@ -278,63 +150,28 @@ public class SearchController {
             : "(no preview — binary or unreadable file)";
     String query = extractTerms(searchField.getText().trim());
 
-    previewFlow.getChildren().setAll(buildHighlightedText(content, query));
+    previewFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
     tabPane.getSelectionModel().select(0);
     loadFullFile(result.path(), query);
   }
 
   private void loadFullFile(String filePath, String query) {
-      String currentFullFileContent;
-      try {
-      currentFullFileContent = Files.readString(Path.of(filePath));
+    String content;
+    try {
+      content = Files.readString(Path.of(filePath));
     } catch (IOException e) {
-      currentFullFileContent = "(could not read file: " + e.getMessage() + ")";
+      content = "(could not read file: " + e.getMessage() + ")";
     }
-    fullFileFlow.getChildren().setAll(buildHighlightedText(currentFullFileContent, query));
+    fullFileFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
   }
 
-  @FXML
-  private void onViewFullFile() {
-    tabPane.getSelectionModel().select(1);
-  }
-
-  private List<Node> buildHighlightedText(String content, String query) {
-    List<Node> nodes = new ArrayList<>();
-
-    if (query == null || query.isBlank()) {
-      nodes.add(styledText(content, false));
-      return nodes;
-    }
-
-    String lower = content.toLowerCase();
-    String term = query.toLowerCase();
-    int start = 0;
-
-    while (true) {
-      int idx = lower.indexOf(term, start);
-      if (idx == -1) {
-        if (start < content.length()) nodes.add(styledText(content.substring(start), false));
-        break;
-      }
-      if (idx > start) nodes.add(styledText(content.substring(start, idx), false));
-      nodes.add(styledText(content.substring(idx, idx + term.length()), true));
-      start = idx + term.length();
-    }
-
-    return nodes;
-  }
-
-  private Text styledText(String content, boolean highlight) {
-    Text t = new Text(content);
-    if (highlight) {
-      t.setFill(Color.web("#a6e3a1"));
-      t.setStyle(
-          "-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px; -fx-font-weight: bold;");
-    } else {
-      t.setFill(Color.web("#cdd6f4"));
-      t.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
-    }
-    return t;
+  private void updateReportBox(IndexReport report) {
+    if (report == null) return;
+    reportIndexed.setText(String.valueOf(report.filesFound()));
+    reportSkipped.setText(String.valueOf(report.skipped()));
+    reportDirs.setText(String.valueOf(report.directoriesVisited()));
+    reportErrors.setText(String.valueOf(report.errors()));
+    reportTime.setText(String.format("%.2fs", report.elapsedSeconds()));
   }
 
   private String extractTerms(String raw) {
@@ -347,11 +184,5 @@ public class SearchController {
       }
     }
     return sb.toString();
-  }
-
-  private String shortenPath(String path, int max) {
-    if (path == null) return "";
-    if (path.length() <= max) return path;
-    return "..." + path.substring(path.length() - (max - 1));
   }
 }
