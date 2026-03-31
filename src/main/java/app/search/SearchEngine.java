@@ -29,6 +29,6 @@ public class SearchEngine {
     SearchRequest request = parser.parse(raw);
     if (request.terms().isBlank()) return List.of();
     return repository.search(
-            request.terms(), request.extension(), request.directory(), limit, offset, sort);
+        request.terms(), request.extension(), request.directory(), limit, offset, sort);
   }
 }

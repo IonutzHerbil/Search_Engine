@@ -5,6 +5,7 @@ import app.indexer.IndexerFactory;
 import app.model.IndexReport;
 import app.model.SearchResult;
 import app.search.SearchEngine;
+import app.search.SortOrder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +17,6 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import app.search.SortOrder;
 
 public class SearchController {
 
@@ -91,18 +91,21 @@ public class SearchController {
     loadMoreButton.visibleProperty().bind(searchVM.hasMoreProperty());
     loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
 
-    sortChoice.setItems(javafx.collections.FXCollections.observableArrayList(
-            "Relevance", "Date", "Size"));
+    sortChoice.setItems(
+        javafx.collections.FXCollections.observableArrayList("Relevance", "Date", "Size"));
     sortChoice.setValue("Relevance");
-    sortChoice.valueProperty().addListener((obs, old, val) -> {
-      searchVM.setSortOrder(switch (val) {
-        case "Date" -> SortOrder.DATE;
-        case "Size" -> SortOrder.SIZE;
-        default -> SortOrder.RELEVANCE;
-      });
-      triggerSearch();
-    });
-
+    sortChoice
+        .valueProperty()
+        .addListener(
+            (obs, old, val) -> {
+              searchVM.setSortOrder(
+                  switch (val) {
+                    case "Date" -> SortOrder.DATE;
+                    case "Size" -> SortOrder.SIZE;
+                    default -> SortOrder.RELEVANCE;
+                  });
+              triggerSearch();
+            });
   }
 
   private void setupLiveSearch() {

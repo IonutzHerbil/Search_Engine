@@ -19,7 +19,7 @@ import javafx.util.Callback;
 public class ResultCellFactory implements Callback<ListView<SearchResult>, ListCell<SearchResult>> {
 
   private static final DateTimeFormatter DATE_FMT =
-          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
 
   @Override
   public ListCell<SearchResult> call(ListView<SearchResult> lv) {
@@ -47,8 +47,8 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         sizeLabel.getStyleClass().add("cell-meta");
         dateLabel.getStyleClass().add("cell-meta");
 
-        Tooltip.install(rankLabel,
-                new Tooltip("BM25 relevance score — higher means more relevant"));
+        Tooltip.install(
+            rankLabel, new Tooltip("BM25 relevance score — higher means more relevant"));
 
         HBox.setHgrow(spacer, Priority.ALWAYS);
         topRow.setAlignment(Pos.CENTER_LEFT);

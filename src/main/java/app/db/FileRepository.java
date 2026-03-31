@@ -3,7 +3,6 @@ package app.db;
 import app.model.FileRecord;
 import app.model.SearchResult;
 import app.search.SortOrder;
-
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
@@ -69,9 +68,11 @@ public class FileRepository {
   }
 
   public List<SearchResult> search(
-          String query, String extension, String directory, int limit, int offset, SortOrder sort) {
+      String query, String extension, String directory, int limit, int offset, SortOrder sort) {
 
-    StringBuilder sql = new StringBuilder("""
+    StringBuilder sql =
+        new StringBuilder(
+            """
       SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, rank
       FROM files_fts fts
       JOIN files f ON f.path = fts.path
@@ -81,11 +82,12 @@ public class FileRepository {
     if (extension != null) sql.append("AND f.extension = ? ");
     if (directory != null) sql.append("AND f.path LIKE ? ");
 
-    sql.append(switch (sort) {
-      case DATE -> "ORDER BY f.lastModified DESC ";
-      case SIZE -> "ORDER BY f.sizeBytes DESC ";
-      default ->  "ORDER BY rank ";
-    });
+    sql.append(
+        switch (sort) {
+          case DATE -> "ORDER BY f.lastModified DESC ";
+          case SIZE -> "ORDER BY f.sizeBytes DESC ";
+          default -> "ORDER BY rank ";
+        });
 
     sql.append("LIMIT ? OFFSET ?");
 
@@ -100,7 +102,8 @@ public class FileRepository {
 
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(new SearchResult(
+          results.add(
+              new SearchResult(
                   rs.getString("path"),
                   rs.getString("name"),
                   rs.getString("extension"),
@@ -116,7 +119,8 @@ public class FileRepository {
     return results;
   }
 
-  public List<SearchResult> search(String query, String extension, String directory, int limit, int offset) {
+  public List<SearchResult> search(
+      String query, String extension, String directory, int limit, int offset) {
     return search(query, extension, directory, limit, offset, SortOrder.RELEVANCE);
   }
 

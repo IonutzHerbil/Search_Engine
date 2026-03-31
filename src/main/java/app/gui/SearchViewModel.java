@@ -26,7 +26,7 @@ public class SearchViewModel {
   private final StringProperty resultCount = new SimpleStringProperty("");
   private final BooleanProperty hasMore = new SimpleBooleanProperty(false);
   private final ObjectProperty<SortOrder> sortOrder =
-          new SimpleObjectProperty<>(SortOrder.RELEVANCE);
+      new SimpleObjectProperty<>(SortOrder.RELEVANCE);
 
   private String currentQuery = "";
   private int currentOffset = 0;
@@ -48,7 +48,8 @@ public class SearchViewModel {
 
   public void loadMore() {
     if (!hasMore.get() || currentQuery.isBlank()) return;
-    List<SearchResult> more = engine.search(currentQuery, PAGE_SIZE, currentOffset, sortOrder.get());
+    List<SearchResult> more =
+        engine.search(currentQuery, PAGE_SIZE, currentOffset, sortOrder.get());
     results.addAll(more);
     currentOffset += more.size();
     hasMore.set(more.size() == PAGE_SIZE);
