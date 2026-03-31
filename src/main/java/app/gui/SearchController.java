@@ -57,9 +57,8 @@ public class SearchController {
   private IndexerFactory factory;
   private FileRepository repository;
   private PauseTransition liveSearchDelay;
-  private String currentFullFileContent;
 
-  public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
+    public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
     this.factory = factory;
     this.engine = engine;
     this.repository = repository;
@@ -86,6 +85,7 @@ public class SearchController {
               private final Label pathLabel = new Label();
               private final Label snippetLabel = new Label();
               private final Region spacer = new Region();
+              private final Label rankLabel=new Label();
 
               {
                 box.setPadding(new Insets(8, 14, 8, 14));
@@ -94,10 +94,11 @@ public class SearchController {
                 extLabel.getStyleClass().add("cell-ext");
                 pathLabel.getStyleClass().add("cell-path");
                 snippetLabel.getStyleClass().add("cell-snippet");
+                rankLabel.getStyleClass().add("cell-rank");
 
                 HBox.setHgrow(spacer, Priority.ALWAYS);
                 topRow.setAlignment(Pos.CENTER_LEFT);
-                topRow.getChildren().addAll(nameLabel, spacer, extLabel);
+                topRow.getChildren().addAll(rankLabel, nameLabel, spacer, extLabel);
 
                 pathLabel.setMaxWidth(Double.MAX_VALUE);
                 snippetLabel.setMaxWidth(Double.MAX_VALUE);
@@ -118,6 +119,7 @@ public class SearchController {
                 String ext = r.extension();
                 extLabel.setText(ext != null && !ext.isBlank() ? ext : "—");
                 pathLabel.setText(shortenPath(r.path(), 60));
+                rankLabel.setText(String.format("%.2f", Math.abs(r.score())));
 
                 if (r.snippet() != null && !r.snippet().isBlank()) {
                   String line = r.snippet().lines().findFirst().orElse("").trim();
@@ -282,7 +284,8 @@ public class SearchController {
   }
 
   private void loadFullFile(String filePath, String query) {
-    try {
+      String currentFullFileContent;
+      try {
       currentFullFileContent = Files.readString(Path.of(filePath));
     } catch (IOException e) {
       currentFullFileContent = "(could not read file: " + e.getMessage() + ")";

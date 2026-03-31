@@ -311,3 +311,10 @@
     -fx-shape: "";
     -fx-padding: 0;
 }
+
+.cell-rank {
+    -fx-font-size: 12px;
+    -fx-text-fill: #00ff5b;
+    -fx-font-family: "Consolas", monospace;
+    -fx-padding: 1 6 1 0;
+}
