@@ -30,6 +30,35 @@
                     <Button text="Browse" onAction="#onBrowse" styleClass="btn-flat"/>
                     <Button text="Index"  onAction="#onIndex"  styleClass="btn-accent"/>
                 </HBox>
+                <HBox alignment="CENTER_LEFT">
+                    <padding><Insets top="4" right="16" bottom="0" left="16"/></padding>
+                    <Button text="▸ Configure ignore rules" onAction="#onToggleSettings"
+                            fx:id="settingsToggle" styleClass="btn-flat"/>
+                </HBox>
+
+                <VBox fx:id="settingsBox" visible="false" managed="false" spacing="6">
+                    <padding><Insets top="6" right="16" bottom="10" left="16"/></padding>
+
+                    <Label text="SKIP THESE EXTENSIONS"
+                           style="-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #4c566a;"/>
+                    <Label text="Comma separated — e.g. exe, dll, class"
+                           style="-fx-font-size: 9px; -fx-text-fill: #4c566a;"/>
+                    <TextField fx:id="ignoredExtsField"
+                               styleClass="compact-field"/>
+
+                    <Label text="SKIP THESE DIRECTORIES"
+                           style="-fx-font-size: 9px; -fx-font-weight: bold; -fx-text-fill: #4c566a;
+                  -fx-padding: 4 0 0 0;"/>
+                    <Label text="One name per line — e.g. node_modules, .git"
+                           style="-fx-font-size: 9px; -fx-text-fill: #4c566a;"/>
+                    <TextArea fx:id="ignoredDirsField"
+                              prefRowCount="4"
+                              styleClass="compact-field"
+                              style="-fx-font-family: 'Consolas', monospace; -fx-font-size: 11px;"/>
+
+                    <Label text="Prefix with . to match hidden directories (e.g. .git)"
+                           style="-fx-font-size: 9px; -fx-text-fill: #4c566a; -fx-font-style: italic;"/>
+                </VBox>
 
                 <HBox alignment="CENTER_LEFT">
                     <padding><Insets top="0" right="16" bottom="6" left="16"/></padding>

@@ -2,6 +2,7 @@ package app.gui;
 
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
+import java.util.Set;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -28,13 +29,13 @@ public class IndexViewModel {
     this.onIndexComplete = callback;
   }
 
-  public void index(String path) {
+  public void index(String path, Set<String> ignoredDirs, Set<String> ignoredExts) {
     if (path == null || path.isBlank()) {
       status.set("Enter a directory path first.");
       return;
     }
 
-    var indexer = factory.create(path);
+    var indexer = factory.create(path, ignoredDirs, ignoredExts);
     indexing.set(true);
     report.set(null);
 
@@ -49,16 +50,13 @@ public class IndexViewModel {
         };
 
     task.setOnRunning(e -> status.set("Indexing…"));
-
     task.setOnSucceeded(
         e -> {
-          IndexReport r = task.getValue();
-          report.set(r);
+          report.set(task.getValue());
           indexing.set(false);
           status.set("Done.");
           if (onIndexComplete != null) onIndexComplete.run();
         });
-
     task.setOnFailed(
         e -> {
           indexing.set(false);

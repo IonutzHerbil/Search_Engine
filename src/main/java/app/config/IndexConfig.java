@@ -35,4 +35,8 @@ public record IndexConfig(
 
     return new IndexConfig(root, DEFAULT_IGNORED_DIRS, DEFAULT_IGNORED_EXTS, db, format);
   }
+
+  public static IndexConfig custom(String path, Set<String> ignoredDirs, Set<String> ignoredExts) {
+    return new IndexConfig(Paths.get(path), ignoredDirs, ignoredExts, "vision_index.db", "TEXT");
+  }
 }

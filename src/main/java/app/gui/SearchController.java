@@ -9,10 +9,13 @@ import app.search.SortOrder;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Set;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -42,6 +45,10 @@ public class SearchController {
   @FXML private TabPane tabPane;
   @FXML private Button loadMoreButton;
   @FXML private ChoiceBox<String> sortChoice;
+  @FXML private TextField ignoredExtsField;
+  @FXML private TextArea ignoredDirsField;
+  @FXML private VBox settingsBox;
+  @FXML private Button settingsToggle;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -58,6 +65,11 @@ public class SearchController {
         });
 
     bindUI();
+
+    ignoredExtsField.setText("class, obj, o, zip, tar, gz, rar, 7z, tmp, bak, lnk, db, sqlite");
+    ignoredDirsField.setText(
+        ".hidden\nnode_modules\ntarget\nbuild\ncache\ndist\nAppData\nenv\nflutter\nscoop");
+
     setupLiveSearch();
     searchVM.refreshExtensions();
   }
@@ -140,7 +152,28 @@ public class SearchController {
 
   @FXML
   private void onIndex() {
-    indexVM.index(pathField.getText().trim());
+    Set<String> ignoredExts =
+        Arrays.stream(ignoredExtsField.getText().split(","))
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .collect(java.util.stream.Collectors.toSet());
+
+    Set<String> ignoredDirs =
+        Arrays.stream(ignoredDirsField.getText().split("\n"))
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .map(name -> name.startsWith(".") ? "^\\" + name + ".*" : ".*" + name + ".*")
+            .collect(java.util.stream.Collectors.toSet());
+
+    indexVM.index(pathField.getText().trim(), ignoredDirs, ignoredExts);
+  }
+
+  @FXML
+  private void onToggleSettings() {
+    boolean visible = !settingsBox.isVisible();
+    settingsBox.setVisible(visible);
+    settingsBox.setManaged(visible);
+    settingsToggle.setText(visible ? "▾ Ignore rules" : "▸ Ignore rules");
   }
 
   @FXML
@@ -148,11 +181,6 @@ public class SearchController {
     extFilter.setValue(null);
     dirFilter.clear();
     triggerSearch();
-  }
-
-  @FXML
-  private void onViewFullFile() {
-    tabPane.getSelectionModel().select(1);
   }
 
   @FXML

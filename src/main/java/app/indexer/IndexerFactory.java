@@ -3,6 +3,7 @@ package app.indexer;
 import app.config.IndexConfig;
 import app.db.FileRepository;
 import app.processor.ContentExtractor;
+import java.util.Set;
 
 public class IndexerFactory {
 
@@ -16,6 +17,12 @@ public class IndexerFactory {
 
   public FileIndexer create(String path) {
     IndexConfig config = IndexConfig.fromArgs(new String[] {path});
+    FileFilter filter = new FileFilter(config);
+    return new FileIndexer(config, repository, filter, extractor);
+  }
+
+  public FileIndexer create(String path, Set<String> ignoredDirs, Set<String> ignoredExts) {
+    IndexConfig config = IndexConfig.custom(path, ignoredDirs, ignoredExts);
     FileFilter filter = new FileFilter(config);
     return new FileIndexer(config, repository, filter, extractor);
   }
