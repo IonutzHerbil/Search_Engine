@@ -195,4 +195,44 @@ public class FileRepository {
           }
         return map;
       }
+        public void upsertNoCommit(FileRecord record) {
+        try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+        PreparedStatement del2 =
+                                  connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
+        PreparedStatement ins1 =
+                                 connection.prepareStatement(
+                                              "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
+        PreparedStatement ins2 =
+                                  connection.prepareStatement(
+                                              "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
+
+                    del1.setString(1, record.path());
+            del1.executeUpdate();
+            del2.setString(1, record.path());
+            del2.executeUpdate();
+
+                    ins1.setString(1, record.path());
+            ins1.setString(2, record.name());
+            ins1.setString(3, record.extension());
+            ins1.setLong(4, record.sizeBytes());
+            ins1.setLong(5, record.lastModified());
+            ins1.setString(6, record.preview());
+            ins1.executeUpdate();
+
+                    ins2.setString(1, record.path());
+            ins2.setString(2, record.name());
+            ins2.setString(3, record.content() != null ? record.content() : "");
+            ins2.executeUpdate();
+          } catch (SQLException e) {
+            System.err.println("[DB ERROR] Failed to save " + record.name() + ": " + e.getMessage());
+          }
+      }
+
+          public void commit() {
+        try {
+            connection.commit();
+          } catch (SQLException e) {
+            try { connection.rollback(); } catch (SQLException ignored) {}System.err.println("[COMMIT ERROR] " + e.getMessage());
+          }
+      }
 }

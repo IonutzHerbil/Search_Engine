@@ -23,6 +23,7 @@ public class FileIndexer {
   private final FileFilter filter;
   private final ContentExtractor extractor;
   private final FileRepository repository;
+  private static final int COMMIT_BATCH_SIZE = 200;
 
   public FileIndexer(
           IndexConfig config,
@@ -40,6 +41,7 @@ public class FileIndexer {
     Set<Path> visitedRealPaths = new HashSet<>();
     Map<String, Long> lastModifiedCache =
                     repository.getLastModifiedMap(config.rootDirectory().toAbsolutePath().toString());
+    int[] pendingCommits = {0};
     try {
       Files.walkFileTree(
               config.rootDirectory(),
@@ -85,7 +87,11 @@ public class FileIndexer {
 
                     boolean isNew = storedModified == -1;
                     FileRecord record = extractor.extract(file, attrs);
-                    repository.upsert(record);
+                    repository.upsertNoCommit(record);
+                    if (++pendingCommits[0] >= COMMIT_BATCH_SIZE) {
+                      repository.commit();
+                      pendingCommits[0] = 0;
+                    }
                     if (isNew) stats.recordNewFile();
                     else stats.recordUpdatedFile();
                     onFileIndexed.accept(record.name());
@@ -106,7 +112,9 @@ public class FileIndexer {
     } catch (IOException e) {
       System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
     }
-
+    if (pendingCommits[0] > 0) {
+            repository.commit();
+    }
     repository.deleteStale(config.rootDirectory().toString());
     return stats.toReport(config.rootDirectory().toString());
   }
