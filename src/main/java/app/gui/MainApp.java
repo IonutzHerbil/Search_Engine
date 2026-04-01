@@ -7,9 +7,12 @@ import app.indexer.IndexerFactory;
 import app.processor.ContentExtractor;
 import app.search.SearchEngine;
 import atlantafx.base.theme.NordDark;
+import java.sql.SQLException;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 
 public class MainApp extends Application {
@@ -19,7 +22,15 @@ public class MainApp extends Application {
     Application.setUserAgentStylesheet(new NordDark().getUserAgentStylesheet());
 
     IndexConfig config = IndexConfig.fromArgs(new String[0]);
-    Database db = new Database(config.dbPath());
+
+    Database db;
+    try {
+      db = new Database(config.dbPath());
+    } catch (SQLException e) {
+      showFatalError("Could not open database: " + e.getMessage());
+      return;
+    }
+
     FileRepository repository = new FileRepository(db);
     ContentExtractor extractor = new ContentExtractor();
     SearchEngine engine = new SearchEngine(repository);
@@ -32,9 +43,29 @@ public class MainApp extends Application {
     SearchController controller = loader.getController();
     controller.init(factory, engine, repository);
 
+    stage.setOnCloseRequest(e -> {
+      if (controller.isIndexing()) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Indexing in progress");
+        alert.setHeaderText("Indexing is still running.");
+        alert.setContentText("Close anyway? The current indexing run will be lost.");
+        alert.showAndWait().ifPresent(response -> {
+          if (response != ButtonType.OK) e.consume();
+        });
+      }
+    });
+
     stage.setTitle("Search Engine");
     stage.setScene(scene);
     stage.show();
+  }
+
+  private void showFatalError(String message) {
+    Alert alert = new Alert(Alert.AlertType.ERROR);
+    alert.setTitle("Fatal Error");
+    alert.setHeaderText("Search Engine could not start");
+    alert.setContentText(message);
+    alert.showAndWait();
   }
 
   public static void main(String[] args) {

@@ -13,68 +13,74 @@ import javafx.concurrent.Task;
 
 public class IndexViewModel {
 
-  private final IndexerFactory factory;
+    private final IndexerFactory factory;
 
-  private final StringProperty status = new SimpleStringProperty("Ready");
-  private final BooleanProperty indexing = new SimpleBooleanProperty(false);
-  private final ObjectProperty<IndexReport> report = new SimpleObjectProperty<>(null);
+    private final StringProperty status = new SimpleStringProperty("Ready");
+    private final BooleanProperty indexing = new SimpleBooleanProperty(false);
+    private final ObjectProperty<IndexReport> report = new SimpleObjectProperty<>(null);
 
-  private Runnable onIndexComplete;
+    private Runnable onIndexComplete;
 
-  public IndexViewModel(IndexerFactory factory) {
-    this.factory = factory;
-  }
-
-  public void setOnIndexComplete(Runnable callback) {
-    this.onIndexComplete = callback;
-  }
-
-  public void index(String path, Set<String> ignoredDirs, Set<String> ignoredExts) {
-    if (path == null || path.isBlank()) {
-      status.set("Enter a directory path first.");
-      return;
+    public IndexViewModel(IndexerFactory factory) {
+        this.factory = factory;
     }
 
-    var indexer = factory.create(path, ignoredDirs, ignoredExts);
-    indexing.set(true);
-    report.set(null);
+    public void setOnIndexComplete(Runnable callback) {
+        this.onIndexComplete = callback;
+    }
 
-    Task<IndexReport> task =
-        new Task<>() {
-          @Override
-          protected IndexReport call() {
-            return indexer.index(
-                name ->
-                    javafx.application.Platform.runLater(() -> status.set("Indexing: " + name)));
-          }
-        };
+    public void index(String path, Set<String> ignoredDirs, Set<String> ignoredExts) {
+        if (path == null || path.isBlank()) {
+            status.set("Enter a directory path first.");
+            return;
+        }
 
-    task.setOnRunning(e -> status.set("Indexing…"));
-    task.setOnSucceeded(
-        e -> {
-          report.set(task.getValue());
-          indexing.set(false);
-          status.set("Done.");
-          if (onIndexComplete != null) onIndexComplete.run();
-        });
-    task.setOnFailed(
-        e -> {
-          indexing.set(false);
-          status.set("Failed: " + task.getException().getMessage());
-        });
+        var indexer = factory.create(path, ignoredDirs, ignoredExts);
+        indexing.set(true);
+        report.set(null);
 
-    new Thread(task).start();
-  }
+        Task<IndexReport> task =
+                new Task<>() {
+                    @Override
+                    protected IndexReport call() {
+                        return indexer.index(
+                                name ->
+                                        javafx.application.Platform.runLater(() -> status.set("Indexing: " + name)));
+                    }
+                };
 
-  public StringProperty statusProperty() {
-    return status;
-  }
+        task.setOnRunning(e -> status.set("Indexing…"));
+        task.setOnSucceeded(
+                e -> {
+                    report.set(task.getValue());
+                    indexing.set(false);
+                    status.set("Done.");
+                    if (onIndexComplete != null) onIndexComplete.run();
+                });
+        task.setOnFailed(
+                e -> {
+                    indexing.set(false);
+                    status.set("Failed: " + task.getException().getMessage());
+                });
 
-  public BooleanProperty indexingProperty() {
-    return indexing;
-  }
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
+    }
 
-  public ObjectProperty<IndexReport> reportProperty() {
-    return report;
-  }
+    public boolean isIndexing() {
+        return indexing.get();
+    }
+
+    public StringProperty statusProperty() {
+        return status;
+    }
+
+    public BooleanProperty indexingProperty() {
+        return indexing;
+    }
+
+    public ObjectProperty<IndexReport> reportProperty() {
+        return report;
+    }
 }
