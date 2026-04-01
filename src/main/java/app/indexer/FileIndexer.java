@@ -6,6 +6,8 @@ import app.model.FileRecord;
 import app.model.IndexReport;
 import app.model.TraversalStats;
 import app.processor.ContentExtractor;
+import app.util.FileTypes;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -63,9 +65,7 @@ public class FileIndexer {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                   String name = file.getFileName().toString();
-                  int dot = name.lastIndexOf('.');
-                  String ext = (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
-
+                  String ext = FileTypes.parseExtension(name);
                   if (filter.shouldSkipFile(ext)) {
                     stats.recordFiltered();
                     return FileVisitResult.CONTINUE;

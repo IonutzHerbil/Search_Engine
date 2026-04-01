@@ -14,7 +14,7 @@ public class ContentExtractor {
 
   public FileRecord extract(Path file, BasicFileAttributes attrs) {
     String name = file.getFileName().toString();
-    String ext = parseExtension(name);
+    String ext = FileTypes.parseExtension(name);
     String preview = null;
     String content = null;
 
@@ -34,11 +34,6 @@ public class ContentExtractor {
         attrs.lastModifiedTime().toMillis(),
         preview,
         content);
-  }
-
-  private String parseExtension(String name) {
-    int dot = name.lastIndexOf('.');
-    return (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
   }
 
   private String extractPreview(String text) {

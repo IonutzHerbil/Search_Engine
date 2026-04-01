@@ -34,4 +34,9 @@ public final class FileTypes {
   public static boolean isText(String extension) {
     return TEXT_EXTENSIONS.contains(extension.toLowerCase());
   }
+
+  public static String parseExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
+      }
 }
