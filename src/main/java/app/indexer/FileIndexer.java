@@ -13,6 +13,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -37,7 +38,8 @@ public class FileIndexer {
   public IndexReport index(Consumer<String> onFileIndexed) {
     TraversalStats stats = new TraversalStats();
     Set<Path> visitedRealPaths = new HashSet<>();
-
+    Map<String, Long> lastModifiedCache =
+                    repository.getLastModifiedMap(config.rootDirectory().toAbsolutePath().toString());
     try {
       Files.walkFileTree(
               config.rootDirectory(),
@@ -74,7 +76,7 @@ public class FileIndexer {
                   try {
                     String absolutePath = file.toAbsolutePath().toString();
                     long fileModifiedTime = attrs.lastModifiedTime().toMillis();
-                    long storedModified = repository.getLastModified(absolutePath);
+                    long storedModified = lastModifiedCache.getOrDefault(absolutePath, -1L);
 
                     if (fileModifiedTime == storedModified) {
                       stats.recordUpToDate();

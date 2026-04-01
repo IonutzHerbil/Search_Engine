@@ -182,4 +182,17 @@ public class FileRepository {
     }
     return extensions;
   }
+  public java.util.Map<String, Long> getLastModifiedMap(String rootPath) {
+        java.util.Map<String, Long> map = new java.util.HashMap<>();
+        try (PreparedStatement stmt =
+                              connection.prepareStatement("SELECT path, lastModified FROM files WHERE path LIKE ?")) {
+            stmt.setString(1, rootPath + "%");
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) map.put(rs.getString(1), rs.getLong(2));
+              }
+          } catch (SQLException e) {
+            System.err.println("[PRELOAD ERROR] " + e.getMessage());
+          }
+        return map;
+      }
 }
