@@ -36,8 +36,6 @@ public class SearchController {
   @FXML private Label previewFileLabel;
   @FXML private Label filePathLabel;
   @FXML private Label fileExtLabel;
-  @FXML private Label reportIndexed;
-  @FXML private Label reportDirs;
   @FXML private Label reportErrors;
   @FXML private Label reportTime;
   @FXML private ProgressBar progressBar;
@@ -53,6 +51,10 @@ public class SearchController {
   @FXML private Button exportReportButton;
   @FXML private Label reportUpToDate;
   @FXML private Label reportFiltered;
+  @FXML private Label reportTotal;
+  @FXML private Label reportNew;
+  @FXML private Label reportUpdated;
+
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -236,10 +238,11 @@ public class SearchController {
 
   private void updateReportBox(IndexReport report) {
     if (report == null) return;
-    reportIndexed.setText(String.valueOf(report.filesIndexed()));
+    reportTotal.setText(String.valueOf(report.filesTotal()));
+    reportNew.setText(String.valueOf(report.filesNew()));
+    reportUpdated.setText(String.valueOf(report.filesUpdated()));
     reportUpToDate.setText(String.valueOf(report.filesUpToDate()));
     reportFiltered.setText(String.valueOf(report.filesFiltered()));
-    reportDirs.setText(String.valueOf(report.directoriesVisited()));
     reportErrors.setText(String.valueOf(report.errors()));
     reportTime.setText(String.format("%.2fs", report.elapsedSeconds()));
   }
@@ -288,33 +291,33 @@ public class SearchController {
   }
 
   private String toText(IndexReport report) {
-    return String.format(
-        """
+    return String.format("""
         ========================================
         Root        : %s
-        Indexed     : %d
-        Up to date  : %d
-        Filtered    : %d
+        Total       : %d
+          New       : %d
+          Updated   : %d
+          Up to date: %d
+          Filtered  : %d
         Dirs        : %d
         Errors      : %d
         Time        : %.2fs
         ========================================
         """,
-        report.rootDir(),
-        report.filesIndexed(),
-        report.filesUpToDate(),
-        report.filesFiltered(),
-        report.directoriesVisited(),
-        report.errors(),
-        report.elapsedSeconds());
+            report.rootDir(), report.filesTotal(),
+            report.filesNew(), report.filesUpdated(),
+            report.filesUpToDate(), report.filesFiltered(),
+            report.directoriesVisited(), report.errors(),
+            report.elapsedSeconds());
   }
 
   private String toJson(IndexReport report) {
-    return String.format(
-        """
+    return String.format("""
         {
           "rootDir": "%s",
-          "filesIndexed": %d,
+          "filesTotal": %d,
+          "filesNew": %d,
+          "filesUpdated": %d,
           "filesUpToDate": %d,
           "filesFiltered": %d,
           "directoriesVisited": %d,
@@ -322,12 +325,13 @@ public class SearchController {
           "elapsedSeconds": %.2f
         }
         """,
-        report.rootDir(),
-        report.filesIndexed(),
-        report.filesUpToDate(),
-        report.filesFiltered(),
-        report.directoriesVisited(),
-        report.errors(),
-        report.elapsedSeconds());
+            report.rootDir(), report.filesTotal(),
+            report.filesNew(), report.filesUpdated(),
+            report.filesUpToDate(), report.filesFiltered(),
+            report.directoriesVisited(), report.errors(),
+            report.elapsedSeconds());
+  }
+  public boolean isIndexing() {
+    return indexVM.isIndexing();
   }
 }

@@ -82,17 +82,20 @@
                 <HBox fx:id="reportBox" visible="false" managed="false"
                       styleClass="report-strip" spacing="0" alignment="CENTER">
                     <padding><Insets top="6" right="16" bottom="6" left="16"/></padding>
-                    <Label fx:id="reportIndexed" text="0" styleClass="rpt-val"/>
-                    <Label text=" indexed" styleClass="rpt-lbl"/>
+                    <Label fx:id="reportTotal" text="0" styleClass="rpt-val"/>
+                    <Label text=" total" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportNew" text="0" styleClass="rpt-val"/>
+                    <Label text=" new" styleClass="rpt-lbl"/>
+                    <Label text="  ·  " styleClass="rpt-sep"/>
+                    <Label fx:id="reportUpdated" text="0" styleClass="rpt-val"/>
+                    <Label text=" updated" styleClass="rpt-lbl"/>
                     <Label text="  ·  " styleClass="rpt-sep"/>
                     <Label fx:id="reportUpToDate" text="0" styleClass="rpt-val"/>
                     <Label text=" up to date" styleClass="rpt-lbl"/>
                     <Label text="  ·  " styleClass="rpt-sep"/>
                     <Label fx:id="reportFiltered" text="0" styleClass="rpt-val"/>
                     <Label text=" filtered" styleClass="rpt-lbl"/>
-                    <Label text="  ·  " styleClass="rpt-sep"/>
-                    <Label fx:id="reportDirs" text="0" styleClass="rpt-val"/>
-                    <Label text=" dirs" styleClass="rpt-lbl"/>
                     <Label text="  ·  " styleClass="rpt-sep"/>
                     <Label fx:id="reportErrors" text="0" styleClass="rpt-val"/>
                     <Label text=" errors" styleClass="rpt-lbl"/>
