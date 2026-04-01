@@ -83,4 +83,7 @@ public class IndexViewModel {
     public ObjectProperty<IndexReport> reportProperty() {
         return report;
     }
+    public void setStatus(String message) {
+            status.set(message);
+          }
 }

@@ -280,13 +280,9 @@ public class SearchController {
 
     try {
       java.nio.file.Files.writeString(file.toPath(), content);
-      statusLabel.textProperty().unbind();
-      statusLabel.setText("Report saved to " + file.getName());
-      statusLabel.textProperty().bind(indexVM.statusProperty());
+      indexVM.setStatus("Report saved to " + file.getName());
     } catch (java.io.IOException e) {
-      statusLabel.textProperty().unbind();
-      statusLabel.setText("Failed to save report: " + e.getMessage());
-      statusLabel.textProperty().bind(indexVM.statusProperty());
+      indexVM.setStatus("Failed to save report: " + e.getMessage());
     }
   }
 
