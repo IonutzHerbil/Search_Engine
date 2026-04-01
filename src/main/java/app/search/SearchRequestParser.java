@@ -24,7 +24,6 @@ public class SearchRequestParser {
 
     String sanitized = terms.toString().replaceAll("[^\\p{L}\\p{N}\\s]", " ").trim();
 
-    SearchScope scope = extension != null ? SearchScope.BY_EXTENSION : SearchScope.ALL;
-    return new SearchRequest(sanitized, scope, extension, directory);
+    return new SearchRequest(sanitized, extension, directory);
   }
 }
