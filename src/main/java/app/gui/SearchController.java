@@ -55,7 +55,6 @@ public class SearchController {
   @FXML private Label reportNew;
   @FXML private Label reportUpdated;
 
-
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
@@ -287,7 +286,8 @@ public class SearchController {
   }
 
   private String toText(IndexReport report) {
-    return String.format("""
+    return String.format(
+        """
         ========================================
         Root        : %s
         Total       : %d
@@ -300,15 +300,20 @@ public class SearchController {
         Time        : %.2fs
         ========================================
         """,
-            report.rootDir(), report.filesTotal(),
-            report.filesNew(), report.filesUpdated(),
-            report.filesUpToDate(), report.filesFiltered(),
-            report.directoriesVisited(), report.errors(),
-            report.elapsedSeconds());
+        report.rootDir(),
+        report.filesTotal(),
+        report.filesNew(),
+        report.filesUpdated(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
+        report.directoriesVisited(),
+        report.errors(),
+        report.elapsedSeconds());
   }
 
   private String toJson(IndexReport report) {
-    return String.format("""
+    return String.format(
+        """
         {
           "rootDir": "%s",
           "filesTotal": %d,
@@ -321,12 +326,17 @@ public class SearchController {
           "elapsedSeconds": %.2f
         }
         """,
-            report.rootDir(), report.filesTotal(),
-            report.filesNew(), report.filesUpdated(),
-            report.filesUpToDate(), report.filesFiltered(),
-            report.directoriesVisited(), report.errors(),
-            report.elapsedSeconds());
+        report.rootDir(),
+        report.filesTotal(),
+        report.filesNew(),
+        report.filesUpdated(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
+        report.directoriesVisited(),
+        report.errors(),
+        report.elapsedSeconds());
   }
+
   public boolean isIndexing() {
     return indexVM.isIndexing();
   }

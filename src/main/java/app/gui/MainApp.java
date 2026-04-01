@@ -43,17 +43,21 @@ public class MainApp extends Application {
     SearchController controller = loader.getController();
     controller.init(factory, engine, repository);
 
-    stage.setOnCloseRequest(e -> {
-      if (controller.isIndexing()) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Indexing in progress");
-        alert.setHeaderText("Indexing is still running.");
-        alert.setContentText("Close anyway? The current indexing run will be lost.");
-        alert.showAndWait().ifPresent(response -> {
-          if (response != ButtonType.OK) e.consume();
+    stage.setOnCloseRequest(
+        e -> {
+          if (controller.isIndexing()) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Indexing in progress");
+            alert.setHeaderText("Indexing is still running.");
+            alert.setContentText("Close anyway? The current indexing run will be lost.");
+            alert
+                .showAndWait()
+                .ifPresent(
+                    response -> {
+                      if (response != ButtonType.OK) e.consume();
+                    });
+          }
         });
-      }
-    });
 
     stage.setTitle("Search Engine");
     stage.setScene(scene);

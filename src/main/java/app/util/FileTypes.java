@@ -36,7 +36,7 @@ public final class FileTypes {
   }
 
   public static String parseExtension(String name) {
-        int dot = name.lastIndexOf('.');
-        return (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
-      }
+    int dot = name.lastIndexOf('.');
+    return (dot > 0 && dot < name.length() - 1) ? name.substring(dot + 1) : "";
+  }
 }

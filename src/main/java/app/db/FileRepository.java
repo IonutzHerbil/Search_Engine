@@ -182,57 +182,63 @@ public class FileRepository {
     }
     return extensions;
   }
+
   public java.util.Map<String, Long> getLastModifiedMap(String rootPath) {
-        java.util.Map<String, Long> map = new java.util.HashMap<>();
-        try (PreparedStatement stmt =
-                              connection.prepareStatement("SELECT path, lastModified FROM files WHERE path LIKE ?")) {
-            stmt.setString(1, rootPath + "%");
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) map.put(rs.getString(1), rs.getLong(2));
-              }
-          } catch (SQLException e) {
-            System.err.println("[PRELOAD ERROR] " + e.getMessage());
-          }
-        return map;
+    java.util.Map<String, Long> map = new java.util.HashMap<>();
+    try (PreparedStatement stmt =
+        connection.prepareStatement("SELECT path, lastModified FROM files WHERE path LIKE ?")) {
+      stmt.setString(1, rootPath + "%");
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) map.put(rs.getString(1), rs.getLong(2));
       }
-        public void upsertNoCommit(FileRecord record) {
-        try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+    } catch (SQLException e) {
+      System.err.println("[PRELOAD ERROR] " + e.getMessage());
+    }
+    return map;
+  }
+
+  public void upsertNoCommit(FileRecord record) {
+    try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
         PreparedStatement del2 =
-                                  connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
+            connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
         PreparedStatement ins1 =
-                                 connection.prepareStatement(
-                                              "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
+            connection.prepareStatement(
+                "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
         PreparedStatement ins2 =
-                                  connection.prepareStatement(
-                                              "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
+            connection.prepareStatement(
+                "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
 
-                    del1.setString(1, record.path());
-            del1.executeUpdate();
-            del2.setString(1, record.path());
-            del2.executeUpdate();
+      del1.setString(1, record.path());
+      del1.executeUpdate();
+      del2.setString(1, record.path());
+      del2.executeUpdate();
 
-                    ins1.setString(1, record.path());
-            ins1.setString(2, record.name());
-            ins1.setString(3, record.extension());
-            ins1.setLong(4, record.sizeBytes());
-            ins1.setLong(5, record.lastModified());
-            ins1.setString(6, record.preview());
-            ins1.executeUpdate();
+      ins1.setString(1, record.path());
+      ins1.setString(2, record.name());
+      ins1.setString(3, record.extension());
+      ins1.setLong(4, record.sizeBytes());
+      ins1.setLong(5, record.lastModified());
+      ins1.setString(6, record.preview());
+      ins1.executeUpdate();
 
-                    ins2.setString(1, record.path());
-            ins2.setString(2, record.name());
-            ins2.setString(3, record.content() != null ? record.content() : "");
-            ins2.executeUpdate();
-          } catch (SQLException e) {
-            System.err.println("[DB ERROR] Failed to save " + record.name() + ": " + e.getMessage());
-          }
+      ins2.setString(1, record.path());
+      ins2.setString(2, record.name());
+      ins2.setString(3, record.content() != null ? record.content() : "");
+      ins2.executeUpdate();
+    } catch (SQLException e) {
+      System.err.println("[DB ERROR] Failed to save " + record.name() + ": " + e.getMessage());
+    }
+  }
+
+  public void commit() {
+    try {
+      connection.commit();
+    } catch (SQLException e) {
+      try {
+        connection.rollback();
+      } catch (SQLException ignored) {
       }
-
-          public void commit() {
-        try {
-            connection.commit();
-          } catch (SQLException e) {
-            try { connection.rollback(); } catch (SQLException ignored) {}System.err.println("[COMMIT ERROR] " + e.getMessage());
-          }
-      }
+      System.err.println("[COMMIT ERROR] " + e.getMessage());
+    }
+  }
 }

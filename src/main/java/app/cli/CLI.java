@@ -29,8 +29,7 @@ public class CLI {
     System.out.println("Indexing: " + indexer.getRootDirectory());
     System.out.println("----------------------------------------");
     int[] count = {0};
-    IndexReport report =
-            indexer.index(name -> System.out.printf("[%d] %s%n", ++count[0], name));
+    IndexReport report = indexer.index(name -> System.out.printf("[%d] %s%n", ++count[0], name));
     printReport(report, format);
     runSearchLoop();
   }
@@ -55,18 +54,18 @@ public class CLI {
   private void printReportText(IndexReport report) {
     System.out.println("========================================");
     System.out.printf("Finished in    %.2fs%n", report.elapsedSeconds());
-    System.out.printf("Total files    : %d%n",  report.filesTotal());
-    System.out.printf("  New          : %d%n",  report.filesNew());
-    System.out.printf("  Updated      : %d%n",  report.filesUpdated());
-    System.out.printf("  Up to date   : %d%n",  report.filesUpToDate());
-    System.out.printf("  Filtered     : %d%n",  report.filesFiltered());
-    System.out.printf("Dirs visited   : %d%n",  report.directoriesVisited());
-    System.out.printf("Errors         : %d%n",  report.errors());
+    System.out.printf("Total files    : %d%n", report.filesTotal());
+    System.out.printf("  New          : %d%n", report.filesNew());
+    System.out.printf("  Updated      : %d%n", report.filesUpdated());
+    System.out.printf("  Up to date   : %d%n", report.filesUpToDate());
+    System.out.printf("  Filtered     : %d%n", report.filesFiltered());
+    System.out.printf("Dirs visited   : %d%n", report.directoriesVisited());
+    System.out.printf("Errors         : %d%n", report.errors());
   }
 
   private void printReportJson(IndexReport report) {
     System.out.printf(
-            """
+        """
                 {
                   "rootDir": "%s",
                   "filesTotal": %d,
@@ -79,21 +78,21 @@ public class CLI {
                   "elapsedSeconds": %.2f
                 }
                 """,
-            report.rootDir(),
-            report.filesTotal(),
-            report.filesNew(),
-            report.filesUpdated(),
-            report.filesUpToDate(),
-            report.filesFiltered(),
-            report.directoriesVisited(),
-            report.errors(),
-            report.elapsedSeconds());
+        report.rootDir(),
+        report.filesTotal(),
+        report.filesNew(),
+        report.filesUpdated(),
+        report.filesUpToDate(),
+        report.filesFiltered(),
+        report.directoriesVisited(),
+        report.errors(),
+        report.elapsedSeconds());
   }
 
   private void runSearchLoop() {
     System.out.println("\nSearch ready. Type 'exit' or empty line to quit.");
     System.out.println(
-            "Tip: use ext:<type> to filter by extension, dir:<path> to filter by directory");
+        "Tip: use ext:<type> to filter by extension, dir:<path> to filter by directory");
 
     while (true) {
       System.out.print("> ");

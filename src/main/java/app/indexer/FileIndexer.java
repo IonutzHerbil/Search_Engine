@@ -7,7 +7,6 @@ import app.model.IndexReport;
 import app.model.TraversalStats;
 import app.processor.ContentExtractor;
 import app.util.FileTypes;
-
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -26,10 +25,10 @@ public class FileIndexer {
   private static final int COMMIT_BATCH_SIZE = 200;
 
   public FileIndexer(
-          IndexConfig config,
-          FileRepository repository,
-          FileFilter filter,
-          ContentExtractor extractor) {
+      IndexConfig config,
+      FileRepository repository,
+      FileFilter filter,
+      ContentExtractor extractor) {
     this.config = config;
     this.repository = repository;
     this.filter = filter;
@@ -40,80 +39,80 @@ public class FileIndexer {
     TraversalStats stats = new TraversalStats();
     Set<Path> visitedRealPaths = new HashSet<>();
     Map<String, Long> lastModifiedCache =
-                    repository.getLastModifiedMap(config.rootDirectory().toAbsolutePath().toString());
+        repository.getLastModifiedMap(config.rootDirectory().toAbsolutePath().toString());
     int[] pendingCommits = {0};
     try {
       Files.walkFileTree(
-              config.rootDirectory(),
-              EnumSet.of(FileVisitOption.FOLLOW_LINKS),
-              Integer.MAX_VALUE,
-              new SimpleFileVisitor<>() {
+          config.rootDirectory(),
+          EnumSet.of(FileVisitOption.FOLLOW_LINKS),
+          Integer.MAX_VALUE,
+          new SimpleFileVisitor<>() {
 
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-                        throws IOException {
-                  Path real = dir.toRealPath();
-                  if (!visitedRealPaths.add(real)) {
-                    stats.recordFiltered();
-                    return FileVisitResult.SKIP_SUBTREE;
-                  }
-                  String name = dir.getFileName() != null ? dir.getFileName().toString() : "";
-                  if (filter.shouldSkipDir(name)) {
-                    stats.recordFiltered();
-                    return FileVisitResult.SKIP_SUBTREE;
-                  }
-                  stats.recordDirectory();
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                throws IOException {
+              Path real = dir.toRealPath();
+              if (!visitedRealPaths.add(real)) {
+                stats.recordFiltered();
+                return FileVisitResult.SKIP_SUBTREE;
+              }
+              String name = dir.getFileName() != null ? dir.getFileName().toString() : "";
+              if (filter.shouldSkipDir(name)) {
+                stats.recordFiltered();
+                return FileVisitResult.SKIP_SUBTREE;
+              }
+              stats.recordDirectory();
+              return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              String name = file.getFileName().toString();
+              String ext = FileTypes.parseExtension(name);
+              if (filter.shouldSkipFile(ext)) {
+                stats.recordFiltered();
+                return FileVisitResult.CONTINUE;
+              }
+
+              try {
+                String absolutePath = file.toAbsolutePath().toString();
+                long fileModifiedTime = attrs.lastModifiedTime().toMillis();
+                long storedModified = lastModifiedCache.getOrDefault(absolutePath, -1L);
+
+                if (fileModifiedTime == storedModified) {
+                  stats.recordUpToDate();
                   return FileVisitResult.CONTINUE;
                 }
 
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                  String name = file.getFileName().toString();
-                  String ext = FileTypes.parseExtension(name);
-                  if (filter.shouldSkipFile(ext)) {
-                    stats.recordFiltered();
-                    return FileVisitResult.CONTINUE;
-                  }
-
-                  try {
-                    String absolutePath = file.toAbsolutePath().toString();
-                    long fileModifiedTime = attrs.lastModifiedTime().toMillis();
-                    long storedModified = lastModifiedCache.getOrDefault(absolutePath, -1L);
-
-                    if (fileModifiedTime == storedModified) {
-                      stats.recordUpToDate();
-                      return FileVisitResult.CONTINUE;
-                    }
-
-                    boolean isNew = storedModified == -1;
-                    FileRecord record = extractor.extract(file, attrs);
-                    repository.upsertNoCommit(record);
-                    if (++pendingCommits[0] >= COMMIT_BATCH_SIZE) {
-                      repository.commit();
-                      pendingCommits[0] = 0;
-                    }
-                    if (isNew) stats.recordNewFile();
-                    else stats.recordUpdatedFile();
-                    onFileIndexed.accept(record.name());
-                  } catch (Exception e) {
-                    stats.recordError();
-                  }
-
-                  return FileVisitResult.CONTINUE;
+                boolean isNew = storedModified == -1;
+                FileRecord record = extractor.extract(file, attrs);
+                repository.upsertNoCommit(record);
+                if (++pendingCommits[0] >= COMMIT_BATCH_SIZE) {
+                  repository.commit();
+                  pendingCommits[0] = 0;
                 }
+                if (isNew) stats.recordNewFile();
+                else stats.recordUpdatedFile();
+                onFileIndexed.accept(record.name());
+              } catch (Exception e) {
+                stats.recordError();
+              }
 
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                  stats.recordError();
-                  System.err.println("[ERROR] " + file + " -> " + exc.getMessage());
-                  return FileVisitResult.CONTINUE;
-                }
-              });
+              return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) {
+              stats.recordError();
+              System.err.println("[ERROR] " + file + " -> " + exc.getMessage());
+              return FileVisitResult.CONTINUE;
+            }
+          });
     } catch (IOException e) {
       System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
     }
     if (pendingCommits[0] > 0) {
-            repository.commit();
+      repository.commit();
     }
     repository.deleteStale(config.rootDirectory().toString());
     return stats.toReport(config.rootDirectory().toString());
