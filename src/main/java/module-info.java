@@ -10,4 +10,7 @@ module app {
 
   exports app;
   exports app.gui;
+  exports mediaPipeline;
+  exports mediaPipeline.model;
+  exports mediaPipeline.stage;
 }
