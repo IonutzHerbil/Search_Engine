@@ -39,21 +39,39 @@ public class SearchViewModel {
   public void search(String terms, String ext, String dir) {
     currentQuery = buildQuery(terms, ext, dir);
     currentOffset = 0;
-    List<SearchResult> found = engine.search(currentQuery, PAGE_SIZE, 0, sortOrder.get());
-    results.setAll(found);
-    currentOffset = found.size();
-    hasMore.set(found.size() == PAGE_SIZE);
-    updateCount();
+    String query = currentQuery;
+    SortOrder sort = sortOrder.get();
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              List<SearchResult> found = engine.search(query, PAGE_SIZE, 0, sort);
+              javafx.application.Platform.runLater(
+                  () -> {
+                    results.setAll(found);
+                    currentOffset = found.size();
+                    hasMore.set(found.size() == PAGE_SIZE);
+                    updateCount();
+                  });
+            });
   }
 
   public void loadMore() {
     if (!hasMore.get() || currentQuery.isBlank()) return;
-    List<SearchResult> more =
-        engine.search(currentQuery, PAGE_SIZE, currentOffset, sortOrder.get());
-    results.addAll(more);
-    currentOffset += more.size();
-    hasMore.set(more.size() == PAGE_SIZE);
-    updateCount();
+    String query = currentQuery;
+    int offset = currentOffset;
+    SortOrder sort = sortOrder.get();
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              List<SearchResult> more = engine.search(query, PAGE_SIZE, offset, sort);
+              javafx.application.Platform.runLater(
+                  () -> {
+                    results.addAll(more);
+                    currentOffset += more.size();
+                    hasMore.set(more.size() == PAGE_SIZE);
+                    updateCount();
+                  });
+            });
   }
 
   public void refreshExtensions() {

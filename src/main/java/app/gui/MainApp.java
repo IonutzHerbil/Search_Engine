@@ -27,6 +27,7 @@ public class MainApp extends Application {
     try {
       db = new Database(config.dbPath());
     } catch (SQLException e) {
+      e.printStackTrace();
       showFatalError("Could not open database: " + e.getMessage());
       return;
     }

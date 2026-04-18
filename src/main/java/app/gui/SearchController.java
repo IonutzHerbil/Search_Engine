@@ -7,6 +7,7 @@ import app.model.IndexReport;
 import app.model.SearchResult;
 import app.search.SearchEngine;
 import app.search.SortOrder;
+import app.util.FileTypes;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,12 +18,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class SearchController {
+
+  private static final long MAX_PREVIEW_BYTES = 2_000_000L;
 
   @FXML private TextField searchField;
   @FXML private TextField pathField;
@@ -222,17 +227,56 @@ public class SearchController {
 
     previewFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
     tabPane.getSelectionModel().select(0);
-    loadFullFile(result.path(), query);
+    loadFullFile(result, query);
   }
 
-  private void loadFullFile(String filePath, String query) {
-    String content;
-    try {
-      content = Files.readString(Path.of(filePath));
-    } catch (IOException e) {
-      content = "(could not read file: " + e.getMessage() + ")";
+  private void loadFullFile(SearchResult result, String query) {
+    String ext = result.extension();
+    if (ext == null || ext.isBlank() || !FileTypes.isText(ext)) {
+      showFullFileMessage("(binary or non-text file — see preview above)");
+      return;
     }
-    fullFileFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
+
+    if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
+      showFullFileMessage(
+          String.format(
+              "(file too large to preview: %.1f MB — limit is %.1f MB)",
+              result.sizeBytes() / (1024.0 * 1024), MAX_PREVIEW_BYTES / (1024.0 * 1024)));
+      return;
+    }
+
+    showFullFileMessage("Loading…");
+
+    final String path = result.path();
+    final SearchResult token = result;
+
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              String content;
+              try {
+                content = Files.readString(Path.of(path));
+              } catch (IOException e) {
+                content = "(could not read file: " + e.getMessage() + ")";
+              }
+              final String finalContent = content;
+              javafx.application.Platform.runLater(
+                  () -> {
+                    SearchResult current = resultsList.getSelectionModel().getSelectedItem();
+                    if (current == token) {
+                      fullFileFlow
+                          .getChildren()
+                          .setAll(TextHighlighter.highlight(finalContent, query));
+                    }
+                  });
+            });
+  }
+
+  private void showFullFileMessage(String message) {
+    Text t = new Text(message);
+    t.setFill(Color.web("#7f849c"));
+    t.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 12px;");
+    fullFileFlow.getChildren().setAll(t);
   }
 
   private void updateReportBox(IndexReport report) {
@@ -288,18 +332,18 @@ public class SearchController {
   private String toText(IndexReport report) {
     return String.format(
         """
-        ========================================
-        Root        : %s
-        Total       : %d
-          New       : %d
-          Updated   : %d
-          Up to date: %d
-          Filtered  : %d
-        Dirs        : %d
-        Errors      : %d
-        Time        : %.2fs
-        ========================================
-        """,
+            ========================================
+            Root        : %s
+            Total       : %d
+              New       : %d
+              Updated   : %d
+              Up to date: %d
+              Filtered  : %d
+            Dirs        : %d
+            Errors      : %d
+            Time        : %.2fs
+            ========================================
+            """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),
@@ -314,18 +358,18 @@ public class SearchController {
   private String toJson(IndexReport report) {
     return String.format(
         """
-        {
-          "rootDir": "%s",
-          "filesTotal": %d,
-          "filesNew": %d,
-          "filesUpdated": %d,
-          "filesUpToDate": %d,
-          "filesFiltered": %d,
-          "directoriesVisited": %d,
-          "errors": %d,
-          "elapsedSeconds": %.2f
-        }
-        """,
+            {
+              "rootDir": "%s",
+              "filesTotal": %d,
+              "filesNew": %d,
+              "filesUpdated": %d,
+              "filesUpToDate": %d,
+              "filesFiltered": %d,
+              "directoriesVisited": %d,
+              "errors": %d,
+              "elapsedSeconds": %.2f
+            }
+            """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),

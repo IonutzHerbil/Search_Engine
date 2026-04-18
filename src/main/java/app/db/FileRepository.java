@@ -19,14 +19,18 @@ public class FileRepository {
   public List<SearchResult> search(
       String query, String extension, String directory, int limit, int offset, SortOrder sort) {
 
+    String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
+
     StringBuilder sql =
         new StringBuilder(
             """
-      SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, rank
-      FROM files_fts fts
-      JOIN files f ON f.path = fts.path
-      WHERE files_fts MATCH ?
-      """);
+                    SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, fts.r
+                    FROM (SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? """
+                + innerLimit
+                + """
+            ) fts
+            JOIN files f ON f.path = fts.path
+            """);
 
     if (extension != null) sql.append("AND f.extension = ? ");
     if (directory != null) sql.append("AND f.path LIKE ? ");
@@ -35,7 +39,7 @@ public class FileRepository {
         switch (sort) {
           case DATE -> "ORDER BY f.lastModified DESC ";
           case SIZE -> "ORDER BY f.sizeBytes DESC ";
-          default -> "ORDER BY rank ";
+          default -> "ORDER BY fts.r ";
         });
 
     sql.append("LIMIT ? OFFSET ?");
@@ -57,7 +61,7 @@ public class FileRepository {
                   rs.getString("name"),
                   rs.getString("extension"),
                   rs.getString("preview"),
-                  rs.getDouble("rank"),
+                  rs.getDouble("r"),
                   rs.getLong("lastModified"),
                   rs.getLong("sizeBytes")));
         }
