@@ -285,8 +285,10 @@ public class SearchController {
     StringBuilder sb = new StringBuilder();
     for (String part : raw.trim().split("\\s+")) {
       String lower = part.toLowerCase();
-      if (lower.startsWith("ext:") || lower.startsWith("path:") || lower.startsWith("content:"))
-        continue;
+      if (lower.startsWith("ext:")
+          || lower.startsWith("path:")
+          || lower.startsWith("content:")
+          || lower.startsWith("name:")) continue;
       if (!sb.isEmpty()) sb.append(" ");
       sb.append(part);
     }

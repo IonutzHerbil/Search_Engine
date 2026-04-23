@@ -5,6 +5,7 @@ public class SearchRequestParser {
   private static final String EXT_PREFIX = "ext:";
   private static final String PATH_PREFIX = "path:";
   private static final String CONTENT_PREFIX = "content:";
+  private static final String NAME_PREFIX = "name:";
 
   public SearchRequest parse(String raw) {
     String[] parts = raw.trim().split("\\s+");
@@ -13,7 +14,6 @@ public class SearchRequestParser {
     StringBuilder pathValue = new StringBuilder();
     StringBuilder contentValue = new StringBuilder();
     String extension = null;
-
     String activeQualifier = null;
 
     for (String part : parts) {
@@ -37,6 +37,14 @@ public class SearchRequestParser {
         if (!val.isBlank()) {
           if (!contentValue.isEmpty()) contentValue.append(" ");
           contentValue.append(val);
+        }
+
+      } else if (lower.startsWith(NAME_PREFIX)) {
+        activeQualifier = null;
+        String val = sanitize(part.substring(NAME_PREFIX.length()));
+        if (!val.isBlank()) {
+          if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
+          ftsTerms.append("name:").append(val);
         }
 
       } else if ("path".equals(activeQualifier)) {
