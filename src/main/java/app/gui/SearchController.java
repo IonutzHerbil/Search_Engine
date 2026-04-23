@@ -80,7 +80,6 @@ public class SearchController {
         IndexConfig.DEFAULT_IGNORED_EXTS.stream()
             .sorted()
             .collect(java.util.stream.Collectors.joining("\n")));
-
     ignoredDirsField.setText(
         IndexConfig.DEFAULT_IGNORED_DIR_NAMES.stream()
             .sorted()
@@ -100,9 +99,7 @@ public class SearchController {
         .addListener((obs, old, selected) -> onResultSelected(selected));
 
     extFilter.setItems(searchVM.getAvailableExtensions());
-
     resultCountLabel.textProperty().bind(searchVM.resultCountProperty());
-
     statusLabel.textProperty().bind(indexVM.statusProperty());
 
     progressBar.visibleProperty().bind(indexVM.indexingProperty());
@@ -178,14 +175,12 @@ public class SearchController {
             .map(String::trim)
             .filter(s -> !s.isBlank())
             .collect(java.util.stream.Collectors.toSet());
-
     Set<String> ignoredDirs =
         Arrays.stream(ignoredDirsField.getText().split("\n"))
             .map(String::trim)
             .filter(s -> !s.isBlank())
             .map(name -> name.startsWith(".") ? "^\\" + name + ".*" : ".*" + name + ".*")
             .collect(java.util.stream.Collectors.toSet());
-
     indexVM.index(pathField.getText().trim(), ignoredDirs, ignoredExts);
   }
 
@@ -236,7 +231,6 @@ public class SearchController {
       showFullFileMessage("(binary or non-text file — see preview above)");
       return;
     }
-
     if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
       showFullFileMessage(
           String.format(
@@ -246,10 +240,8 @@ public class SearchController {
     }
 
     showFullFileMessage("Loading…");
-
     final String path = result.path();
     final SearchResult token = result;
-
     Thread.ofVirtual()
         .start(
             () -> {
@@ -262,12 +254,10 @@ public class SearchController {
               final String finalContent = content;
               javafx.application.Platform.runLater(
                   () -> {
-                    SearchResult current = resultsList.getSelectionModel().getSelectedItem();
-                    if (current == token) {
+                    if (resultsList.getSelectionModel().getSelectedItem() == token)
                       fullFileFlow
                           .getChildren()
                           .setAll(TextHighlighter.highlight(finalContent, query));
-                    }
                   });
             });
   }
@@ -293,11 +283,12 @@ public class SearchController {
   private String extractTerms(String raw) {
     if (raw == null || raw.isBlank()) return "";
     StringBuilder sb = new StringBuilder();
-    for (String p : raw.trim().split("\\s+")) {
-      if (!p.toLowerCase().startsWith("ext:") && !p.toLowerCase().startsWith("dir:")) {
-        if (!sb.isEmpty()) sb.append(" ");
-        sb.append(p);
-      }
+    for (String part : raw.trim().split("\\s+")) {
+      String lower = part.toLowerCase();
+      if (lower.startsWith("ext:") || lower.startsWith("path:") || lower.startsWith("content:"))
+        continue;
+      if (!sb.isEmpty()) sb.append(" ");
+      sb.append(part);
     }
     return sb.toString();
   }
@@ -306,7 +297,6 @@ public class SearchController {
   private void onExportReport() {
     IndexReport report = indexVM.reportProperty().get();
     if (report == null) return;
-
     String format = reportFormatChoice.getValue();
     String content = format.equals("JSON") ? toJson(report) : toText(report);
     String ext = format.equals("JSON") ? ".json" : ".txt";
@@ -320,7 +310,6 @@ public class SearchController {
 
     java.io.File file = chooser.showSaveDialog(pathField.getScene().getWindow());
     if (file == null) return;
-
     try {
       java.nio.file.Files.writeString(file.toPath(), content);
       indexVM.setStatus("Report saved to " + file.getName());
@@ -332,18 +321,18 @@ public class SearchController {
   private String toText(IndexReport report) {
     return String.format(
         """
-            ========================================
-            Root        : %s
-            Total       : %d
-              New       : %d
-              Updated   : %d
-              Up to date: %d
-              Filtered  : %d
-            Dirs        : %d
-            Errors      : %d
-            Time        : %.2fs
-            ========================================
-            """,
+        ========================================
+        Root        : %s
+        Total       : %d
+          New       : %d
+          Updated   : %d
+          Up to date: %d
+          Filtered  : %d
+        Dirs        : %d
+        Errors      : %d
+        Time        : %.2fs
+        ========================================
+        """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),
@@ -358,18 +347,18 @@ public class SearchController {
   private String toJson(IndexReport report) {
     return String.format(
         """
-            {
-              "rootDir": "%s",
-              "filesTotal": %d,
-              "filesNew": %d,
-              "filesUpdated": %d,
-              "filesUpToDate": %d,
-              "filesFiltered": %d,
-              "directoriesVisited": %d,
-              "errors": %d,
-              "elapsedSeconds": %.2f
-            }
-            """,
+        {
+          "rootDir": "%s",
+          "filesTotal": %d,
+          "filesNew": %d,
+          "filesUpdated": %d,
+          "filesUpToDate": %d,
+          "filesFiltered": %d,
+          "directoriesVisited": %d,
+          "errors": %d,
+          "elapsedSeconds": %.2f
+        }
+        """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),
