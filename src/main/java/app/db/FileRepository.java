@@ -19,18 +19,18 @@ public class FileRepository {
   public List<SearchResult> search(
       String query, String extension, String directory, int limit, int offset, SortOrder sort) {
 
-    String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
+    if (query == null || query.isBlank()) {
+      return metadataSearch(extension, directory, limit, offset, sort);
+    }
 
+    String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
     StringBuilder sql =
         new StringBuilder(
-            """
-                    SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, fts.r
-                    FROM (SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? """
+            "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, fts.r "
+                + "FROM (SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? "
                 + innerLimit
-                + """
-            ) fts
-            JOIN files f ON f.path = fts.path
-            """);
+                + ") fts "
+                + "JOIN files f ON f.path = fts.path ");
 
     if (extension != null) sql.append("AND f.extension = ? ");
     if (directory != null) sql.append("AND f.path LIKE ? ");
@@ -41,7 +41,6 @@ public class FileRepository {
           case SIZE -> "ORDER BY f.sizeBytes DESC ";
           default -> "ORDER BY fts.r ";
         });
-
     sql.append("LIMIT ? OFFSET ?");
 
     List<SearchResult> results = new ArrayList<>();
@@ -49,10 +48,9 @@ public class FileRepository {
       int i = 1;
       stmt.setString(i++, query);
       if (extension != null) stmt.setString(i++, extension);
-      if (directory != null) stmt.setString(i++, directory + "%");
+      if (directory != null) stmt.setString(i++, "%" + directory + "%");
       stmt.setInt(i++, limit);
       stmt.setInt(i, offset);
-
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
           results.add(
@@ -68,6 +66,51 @@ public class FileRepository {
       }
     } catch (SQLException e) {
       System.err.println("[SEARCH ERROR] " + e.getMessage());
+    }
+    return results;
+  }
+
+  private List<SearchResult> metadataSearch(
+      String extension, String directory, int limit, int offset, SortOrder sort) {
+
+    StringBuilder sql =
+        new StringBuilder(
+            "SELECT path, name, extension, lastModified, preview, sizeBytes, 0.0 AS r "
+                + "FROM files WHERE 1=1 ");
+
+    if (extension != null) sql.append("AND extension = ? ");
+    if (directory != null) sql.append("AND path LIKE ? ");
+
+    sql.append(
+        switch (sort) {
+          case DATE -> "ORDER BY lastModified DESC ";
+          case SIZE -> "ORDER BY sizeBytes DESC ";
+          default -> "ORDER BY lastModified DESC ";
+        });
+    sql.append("LIMIT ? OFFSET ?");
+
+    List<SearchResult> results = new ArrayList<>();
+    try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+      int i = 1;
+      if (extension != null) stmt.setString(i++, extension);
+      if (directory != null) stmt.setString(i++, "%" + directory + "%");
+      stmt.setInt(i++, limit);
+      stmt.setInt(i, offset);
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+          results.add(
+              new SearchResult(
+                  rs.getString("path"),
+                  rs.getString("name"),
+                  rs.getString("extension"),
+                  rs.getString("preview"),
+                  rs.getDouble("r"),
+                  rs.getLong("lastModified"),
+                  rs.getLong("sizeBytes")));
+        }
+      }
+    } catch (SQLException e) {
+      System.err.println("[METADATA SEARCH ERROR] " + e.getMessage());
     }
     return results;
   }
