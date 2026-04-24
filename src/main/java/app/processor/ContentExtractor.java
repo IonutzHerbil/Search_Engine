@@ -1,5 +1,6 @@
 package app.processor;
 
+import app.indexer.PathScorer;
 import app.model.FileRecord;
 import app.util.FileTypes;
 import java.io.IOException;
@@ -26,6 +27,8 @@ public class ContentExtractor {
       }
     }
 
+    double pathScore = PathScorer.score(file.toAbsolutePath().toString(), ext);
+
     return new FileRecord(
         file.toAbsolutePath().toString(),
         name,
@@ -33,7 +36,8 @@ public class ContentExtractor {
         attrs.size(),
         attrs.lastModifiedTime().toMillis(),
         preview,
-        content);
+        content,
+        pathScore);
   }
 
   private String extractPreview(String text) {

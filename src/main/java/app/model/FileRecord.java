@@ -7,4 +7,5 @@ public record FileRecord(
     long sizeBytes,
     long lastModified,
     String preview,
-    String content) {}
+    String content,
+    double pathScore) {}
