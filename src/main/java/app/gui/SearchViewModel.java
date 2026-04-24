@@ -105,7 +105,7 @@ public class SearchViewModel {
   private String buildQuery(String terms, String ext, String dir) {
     StringBuilder sb = new StringBuilder(terms);
     if (ext != null && !ext.isBlank()) sb.append(" ext:").append(ext);
-    if (dir != null && !dir.isBlank()) sb.append(" dir:").append(dir);
+    if (dir != null && !dir.isBlank()) sb.append(" path:").append(dir);
     return sb.toString();
   }
 

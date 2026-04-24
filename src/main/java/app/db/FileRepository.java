@@ -17,10 +17,15 @@ public class FileRepository {
   }
 
   public List<SearchResult> search(
-      String query, String extension, String directory, int limit, int offset, SortOrder sort) {
+      String query,
+      List<String> extensions,
+      List<String> directories,
+      int limit,
+      int offset,
+      SortOrder sort) {
 
     if (query == null || query.isBlank()) {
-      return metadataSearch(extension, directory, limit, offset, sort);
+      return metadataSearch(extensions, directories, limit, offset, sort);
     }
 
     String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
@@ -32,8 +37,12 @@ public class FileRepository {
                 + ") fts "
                 + "JOIN files f ON f.path = fts.path ");
 
-    if (extension != null) sql.append("AND f.extension = ? ");
-    if (directory != null) sql.append("AND f.path LIKE ? ");
+    if (!extensions.isEmpty()) {
+      sql.append("AND f.extension IN (")
+          .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
+          .append(") ");
+    }
+    for (int d = 0; d < directories.size(); d++) sql.append("AND f.path LIKE ? ");
 
     sql.append(
         switch (sort) {
@@ -47,8 +56,8 @@ public class FileRepository {
     try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
       int i = 1;
       stmt.setString(i++, query);
-      if (extension != null) stmt.setString(i++, extension);
-      if (directory != null) stmt.setString(i++, "%" + directory + "%");
+      for (String ext : extensions) stmt.setString(i++, ext);
+      for (String dir : directories) stmt.setString(i++, "%" + dir + "%");
       stmt.setInt(i++, limit);
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
@@ -71,15 +80,19 @@ public class FileRepository {
   }
 
   private List<SearchResult> metadataSearch(
-      String extension, String directory, int limit, int offset, SortOrder sort) {
+      List<String> extensions, List<String> directories, int limit, int offset, SortOrder sort) {
 
     StringBuilder sql =
         new StringBuilder(
             "SELECT path, name, extension, lastModified, preview, sizeBytes, 0.0 AS r "
                 + "FROM files WHERE 1=1 ");
 
-    if (extension != null) sql.append("AND extension = ? ");
-    if (directory != null) sql.append("AND path LIKE ? ");
+    if (!extensions.isEmpty()) {
+      sql.append("AND extension IN (")
+          .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
+          .append(") ");
+    }
+    for (int d = 0; d < directories.size(); d++) sql.append("AND path LIKE ? ");
 
     sql.append(
         switch (sort) {
@@ -92,8 +105,8 @@ public class FileRepository {
     List<SearchResult> results = new ArrayList<>();
     try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
       int i = 1;
-      if (extension != null) stmt.setString(i++, extension);
-      if (directory != null) stmt.setString(i++, "%" + directory + "%");
+      for (String ext : extensions) stmt.setString(i++, ext);
+      for (String dir : directories) stmt.setString(i++, "%" + dir + "%");
       stmt.setInt(i++, limit);
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
@@ -116,20 +129,18 @@ public class FileRepository {
   }
 
   public List<SearchResult> search(
-      String query, String extension, String directory, int limit, int offset) {
-    return search(query, extension, directory, limit, offset, SortOrder.RELEVANCE);
+      String query, List<String> extensions, List<String> directories, int limit, int offset) {
+    return search(query, extensions, directories, limit, offset, SortOrder.RELEVANCE);
   }
 
-  public List<SearchResult> search(String query, String extension, String directory, int limit) {
-    return search(query, extension, directory, limit, 0, SortOrder.RELEVANCE);
+  public List<SearchResult> search(
+      String query, List<String> extensions, List<String> directories, int limit) {
+    return search(query, extensions, directories, limit, 0, SortOrder.RELEVANCE);
   }
 
   public void deleteStale(String rootPath) {
-    List<String> paths = getPathsUnder(rootPath);
-    for (String path : paths) {
-      if (!Path.of(path).toFile().exists()) {
-        delete(path);
-      }
+    for (String path : getPathsUnder(rootPath)) {
+      if (!Path.of(path).toFile().exists()) delete(path);
     }
   }
 
@@ -148,13 +159,13 @@ public class FileRepository {
   }
 
   private void delete(String path) {
-    try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
-        PreparedStatement del2 =
+    try (PreparedStatement d1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+        PreparedStatement d2 =
             connection.prepareStatement("DELETE FROM files_fts WHERE path = ?")) {
-      del1.setString(1, path);
-      del1.executeUpdate();
-      del2.setString(1, path);
-      del2.executeUpdate();
+      d1.setString(1, path);
+      d1.executeUpdate();
+      d2.setString(1, path);
+      d2.executeUpdate();
       connection.commit();
     } catch (SQLException e) {
       try {
@@ -169,7 +180,8 @@ public class FileRepository {
     List<String> extensions = new ArrayList<>();
     try (PreparedStatement stmt =
         connection.prepareStatement(
-            "SELECT DISTINCT extension FROM files WHERE extension IS NOT NULL AND extension != '' ORDER BY extension")) {
+            "SELECT DISTINCT extension FROM files "
+                + "WHERE extension IS NOT NULL AND extension != '' ORDER BY extension")) {
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) extensions.add(rs.getString(1));
       }
@@ -194,33 +206,32 @@ public class FileRepository {
   }
 
   public void upsertNoCommit(FileRecord record) {
-    try (PreparedStatement del1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
-        PreparedStatement del2 =
-            connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
-        PreparedStatement ins1 =
+    try (PreparedStatement d1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+        PreparedStatement d2 = connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
+        PreparedStatement i1 =
             connection.prepareStatement(
                 "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
-        PreparedStatement ins2 =
+        PreparedStatement i2 =
             connection.prepareStatement(
                 "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
 
-      del1.setString(1, record.path());
-      del1.executeUpdate();
-      del2.setString(1, record.path());
-      del2.executeUpdate();
+      d1.setString(1, record.path());
+      d1.executeUpdate();
+      d2.setString(1, record.path());
+      d2.executeUpdate();
 
-      ins1.setString(1, record.path());
-      ins1.setString(2, record.name());
-      ins1.setString(3, record.extension());
-      ins1.setLong(4, record.sizeBytes());
-      ins1.setLong(5, record.lastModified());
-      ins1.setString(6, record.preview());
-      ins1.executeUpdate();
+      i1.setString(1, record.path());
+      i1.setString(2, record.name());
+      i1.setString(3, record.extension());
+      i1.setLong(4, record.sizeBytes());
+      i1.setLong(5, record.lastModified());
+      i1.setString(6, record.preview());
+      i1.executeUpdate();
 
-      ins2.setString(1, record.path());
-      ins2.setString(2, record.name());
-      ins2.setString(3, record.content() != null ? record.content() : "");
-      ins2.executeUpdate();
+      i2.setString(1, record.path());
+      i2.setString(2, record.name());
+      i2.setString(3, record.content() != null ? record.content() : "");
+      i2.executeUpdate();
     } catch (SQLException e) {
       System.err.println("[DB ERROR] Failed to save " + record.name() + ": " + e.getMessage());
     }

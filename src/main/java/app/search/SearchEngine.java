@@ -28,6 +28,6 @@ public class SearchEngine {
     if (raw == null || raw.isBlank()) return List.of();
     SearchRequest request = parser.parse(raw);
     return repository.search(
-        request.terms(), request.extension(), request.directory(), limit, offset, sort);
+        request.terms(), request.extensions(), request.directories(), limit, offset, sort);
   }
 }

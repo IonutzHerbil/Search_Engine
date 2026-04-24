@@ -1,3 +1,5 @@
 package app.search;
 
-public record SearchRequest(String terms, String extension, String directory) {}
+import java.util.List;
+
+public record SearchRequest(String terms, List<String> extensions, List<String> directories) {}

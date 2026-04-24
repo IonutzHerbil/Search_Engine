@@ -1,5 +1,8 @@
 package app.search;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SearchRequestParser {
 
   private static final String EXT_PREFIX = "ext:";
@@ -11,9 +14,9 @@ public class SearchRequestParser {
     String[] parts = raw.trim().split("\\s+");
 
     StringBuilder ftsTerms = new StringBuilder();
-    StringBuilder pathValue = new StringBuilder();
     StringBuilder contentValue = new StringBuilder();
-    String extension = null;
+    List<StringBuilder> pathSegments = new ArrayList<>();
+    List<String> extensions = new ArrayList<>();
     String activeQualifier = null;
 
     for (String part : parts) {
@@ -21,15 +24,14 @@ public class SearchRequestParser {
 
       if (lower.startsWith(EXT_PREFIX)) {
         activeQualifier = null;
-        extension = part.substring(EXT_PREFIX.length()).toLowerCase();
+        String val = part.substring(EXT_PREFIX.length()).toLowerCase();
+        if (!val.isBlank()) extensions.add(val);
 
       } else if (lower.startsWith(PATH_PREFIX)) {
+        pathSegments.add(new StringBuilder());
         activeQualifier = "path";
         String val = part.substring(PATH_PREFIX.length());
-        if (!val.isBlank()) {
-          if (!pathValue.isEmpty()) pathValue.append(" ");
-          pathValue.append(val);
-        }
+        if (!val.isBlank()) pathSegments.getLast().append(val);
 
       } else if (lower.startsWith(CONTENT_PREFIX)) {
         activeQualifier = "content";
@@ -48,8 +50,9 @@ public class SearchRequestParser {
         }
 
       } else if ("path".equals(activeQualifier)) {
-        if (!pathValue.isEmpty()) pathValue.append(" ");
-        pathValue.append(part);
+        StringBuilder current = pathSegments.getLast();
+        if (!current.isEmpty()) current.append(" ");
+        current.append(part);
 
       } else if ("content".equals(activeQualifier)) {
         String val = sanitize(part);
@@ -72,8 +75,10 @@ public class SearchRequestParser {
       ftsTerms.append("content:").append(contentValue);
     }
 
-    String directory = pathValue.isEmpty() ? null : pathValue.toString().trim();
-    return new SearchRequest(ftsTerms.toString(), extension, directory);
+    List<String> directories =
+        pathSegments.stream().map(sb -> sb.toString().trim()).filter(s -> !s.isBlank()).toList();
+
+    return new SearchRequest(ftsTerms.toString(), extensions, directories);
   }
 
   private String sanitize(String s) {
