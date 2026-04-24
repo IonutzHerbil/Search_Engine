@@ -124,6 +124,10 @@ public class SearchController {
     sortChoice.setItems(
         javafx.collections.FXCollections.observableArrayList("Relevance", "Date", "Size"));
     sortChoice.setValue("Relevance");
+    sortChoice.setItems(
+        javafx.collections.FXCollections.observableArrayList(
+            "Relevance", "Date", "Size", "Path Score"));
+    sortChoice.setValue("Relevance");
     sortChoice
         .valueProperty()
         .addListener(
@@ -132,6 +136,7 @@ public class SearchController {
                   switch (val) {
                     case "Date" -> SortOrder.DATE;
                     case "Size" -> SortOrder.SIZE;
+                    case "Path Score" -> SortOrder.PATH_SCORE;
                     default -> SortOrder.RELEVANCE;
                   });
               triggerSearch();
