@@ -2,7 +2,7 @@ package app.db;
 
 import app.model.FileRecord;
 import app.model.SearchResult;
-import app.search.SortOrder;
+import app.search.RankingStrategy;
 import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
@@ -22,18 +22,22 @@ public class FileRepository {
       List<String> directories,
       int limit,
       int offset,
-      SortOrder sort) {
+      RankingStrategy strategy) {
 
     if (query == null || query.isBlank()) {
-      return metadataSearch(extensions, directories, limit, offset, sort);
+      return metadataSearch(extensions, directories, limit, offset, strategy);
     }
 
-    String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
+    String inner =
+        strategy.requiresBm25()
+            ? "SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000"
+            : "SELECT path, 0.0              AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000";
+
     StringBuilder sql =
         new StringBuilder(
             "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, f.pathScore, fts.r "
-                + "FROM (SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? "
-                + innerLimit
+                + "FROM ("
+                + inner
                 + ") fts "
                 + "JOIN files f ON f.path = fts.path ");
 
@@ -44,13 +48,7 @@ public class FileRepository {
     }
     for (int d = 0; d < directories.size(); d++) sql.append("AND f.path LIKE ? ");
 
-    sql.append(
-        switch (sort) {
-          case DATE -> "ORDER BY f.lastModified DESC ";
-          case SIZE -> "ORDER BY f.sizeBytes DESC ";
-          case PATH_SCORE -> "ORDER BY f.pathScore DESC ";
-          default -> "ORDER BY fts.r ";
-        });
+    sql.append(strategy.orderByClause());
     sql.append("LIMIT ? OFFSET ?");
 
     List<SearchResult> results = new ArrayList<>();
@@ -82,7 +80,11 @@ public class FileRepository {
   }
 
   private List<SearchResult> metadataSearch(
-      List<String> extensions, List<String> directories, int limit, int offset, SortOrder sort) {
+      List<String> extensions,
+      List<String> directories,
+      int limit,
+      int offset,
+      RankingStrategy strategy) {
 
     StringBuilder sql =
         new StringBuilder(
@@ -96,13 +98,16 @@ public class FileRepository {
     }
     for (int d = 0; d < directories.size(); d++) sql.append("AND path LIKE ? ");
 
-    sql.append(
-        switch (sort) {
-          case DATE -> "ORDER BY lastModified DESC ";
-          case SIZE -> "ORDER BY sizeBytes DESC ";
-          case PATH_SCORE -> "ORDER BY pathScore DESC ";
-          default -> "ORDER BY lastModified DESC ";
-        });
+    String orderBy =
+        strategy
+            .orderByClause()
+            .replace("f.lastModified", "lastModified")
+            .replace("f.sizeBytes", "sizeBytes")
+            .replace("f.pathScore", "pathScore")
+            .replace("f.name", "name")
+            .replace("fts.r", "0");
+
+    sql.append(orderBy);
     sql.append("LIMIT ? OFFSET ?");
 
     List<SearchResult> results = new ArrayList<>();
@@ -134,12 +139,12 @@ public class FileRepository {
 
   public List<SearchResult> search(
       String query, List<String> extensions, List<String> directories, int limit, int offset) {
-    return search(query, extensions, directories, limit, offset, SortOrder.RELEVANCE);
+    return search(query, extensions, directories, limit, offset, RankingStrategy.RELEVANCE);
   }
 
   public List<SearchResult> search(
       String query, List<String> extensions, List<String> directories, int limit) {
-    return search(query, extensions, directories, limit, 0, SortOrder.RELEVANCE);
+    return search(query, extensions, directories, limit, 0, RankingStrategy.RELEVANCE);
   }
 
   public void deleteStale(String rootPath) {

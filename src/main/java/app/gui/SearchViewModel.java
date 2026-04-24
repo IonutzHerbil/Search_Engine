@@ -2,8 +2,8 @@ package app.gui;
 
 import app.db.FileRepository;
 import app.model.SearchResult;
+import app.search.RankingStrategy;
 import app.search.SearchEngine;
-import app.search.SortOrder;
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -25,8 +25,8 @@ public class SearchViewModel {
   private final ObservableList<String> availableExtensions = FXCollections.observableArrayList();
   private final StringProperty resultCount = new SimpleStringProperty("");
   private final BooleanProperty hasMore = new SimpleBooleanProperty(false);
-  private final ObjectProperty<SortOrder> sortOrder =
-      new SimpleObjectProperty<>(SortOrder.RELEVANCE);
+  private final ObjectProperty<RankingStrategy> strategy =
+      new SimpleObjectProperty<>(RankingStrategy.RELEVANCE);
 
   private String currentQuery = "";
   private int currentOffset = 0;
@@ -39,12 +39,12 @@ public class SearchViewModel {
   public void search(String terms, String ext, String dir) {
     currentQuery = buildQuery(terms, ext, dir);
     currentOffset = 0;
-    String query = currentQuery;
-    SortOrder sort = sortOrder.get();
+    final String query = currentQuery;
+    final RankingStrategy strat = strategy.get();
     Thread.ofVirtual()
         .start(
             () -> {
-              List<SearchResult> found = engine.search(query, PAGE_SIZE, 0, sort);
+              List<SearchResult> found = engine.search(query, PAGE_SIZE, 0, strat);
               javafx.application.Platform.runLater(
                   () -> {
                     results.setAll(found);
@@ -57,13 +57,13 @@ public class SearchViewModel {
 
   public void loadMore() {
     if (!hasMore.get() || currentQuery.isBlank()) return;
-    String query = currentQuery;
-    int offset = currentOffset;
-    SortOrder sort = sortOrder.get();
+    final String query = currentQuery;
+    final int offset = currentOffset;
+    final RankingStrategy strat = strategy.get();
     Thread.ofVirtual()
         .start(
             () -> {
-              List<SearchResult> more = engine.search(query, PAGE_SIZE, offset, sort);
+              List<SearchResult> more = engine.search(query, PAGE_SIZE, offset, strat);
               javafx.application.Platform.runLater(
                   () -> {
                     results.addAll(more);
@@ -78,12 +78,8 @@ public class SearchViewModel {
     availableExtensions.setAll(repository.getDistinctExtensions());
   }
 
-  public void setSortOrder(SortOrder order) {
-    sortOrder.set(order);
-  }
-
-  public ObjectProperty<SortOrder> sortOrderProperty() {
-    return sortOrder;
+  public void setStrategy(RankingStrategy s) {
+    strategy.set(s);
   }
 
   public ObservableList<SearchResult> getResults() {

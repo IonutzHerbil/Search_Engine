@@ -17,17 +17,17 @@ public class SearchEngine {
   }
 
   public List<SearchResult> search(String raw) {
-    return search(raw, DEFAULT_LIMIT, 0, SortOrder.RELEVANCE);
+    return search(raw, DEFAULT_LIMIT, 0, RankingStrategy.RELEVANCE);
   }
 
   public List<SearchResult> search(String raw, int limit, int offset) {
-    return search(raw, limit, offset, SortOrder.RELEVANCE);
+    return search(raw, limit, offset, RankingStrategy.RELEVANCE);
   }
 
-  public List<SearchResult> search(String raw, int limit, int offset, SortOrder sort) {
+  public List<SearchResult> search(String raw, int limit, int offset, RankingStrategy strategy) {
     if (raw == null || raw.isBlank()) return List.of();
     SearchRequest request = parser.parse(raw);
     return repository.search(
-        request.terms(), request.extensions(), request.directories(), limit, offset, sort);
+        request.terms(), request.extensions(), request.directories(), limit, offset, strategy);
   }
 }

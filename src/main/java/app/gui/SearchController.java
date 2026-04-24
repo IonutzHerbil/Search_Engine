@@ -5,8 +5,8 @@ import app.db.FileRepository;
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
 import app.model.SearchResult;
+import app.search.RankingStrategy;
 import app.search.SearchEngine;
-import app.search.SortOrder;
 import app.util.FileTypes;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -122,23 +122,19 @@ public class SearchController {
     exportReportButton.disableProperty().bind(indexVM.reportProperty().isNull());
 
     sortChoice.setItems(
-        javafx.collections.FXCollections.observableArrayList("Relevance", "Date", "Size"));
-    sortChoice.setValue("Relevance");
-    sortChoice.setItems(
         javafx.collections.FXCollections.observableArrayList(
-            "Relevance", "Date", "Size", "Path Score"));
-    sortChoice.setValue("Relevance");
+            RankingStrategy.ALL.stream().map(RankingStrategy::label).toList()));
+    sortChoice.setValue(RankingStrategy.RELEVANCE.label());
     sortChoice
         .valueProperty()
         .addListener(
             (obs, old, val) -> {
-              searchVM.setSortOrder(
-                  switch (val) {
-                    case "Date" -> SortOrder.DATE;
-                    case "Size" -> SortOrder.SIZE;
-                    case "Path Score" -> SortOrder.PATH_SCORE;
-                    default -> SortOrder.RELEVANCE;
-                  });
+              RankingStrategy selected =
+                  RankingStrategy.ALL.stream()
+                      .filter(s -> s.label().equals(val))
+                      .findFirst()
+                      .orElse(RankingStrategy.RELEVANCE);
+              searchVM.setStrategy(selected);
               triggerSearch();
             });
   }
