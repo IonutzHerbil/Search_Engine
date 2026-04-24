@@ -31,7 +31,7 @@ public class FileRepository {
     String innerLimit = (sort == SortOrder.RELEVANCE) ? "LIMIT 5000" : "";
     StringBuilder sql =
         new StringBuilder(
-            "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, fts.r "
+            "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, f.pathScore, fts.r "
                 + "FROM (SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? "
                 + innerLimit
                 + ") fts "
@@ -48,6 +48,7 @@ public class FileRepository {
         switch (sort) {
           case DATE -> "ORDER BY f.lastModified DESC ";
           case SIZE -> "ORDER BY f.sizeBytes DESC ";
+          case PATH_SCORE -> "ORDER BY f.pathScore DESC ";
           default -> "ORDER BY fts.r ";
         });
     sql.append("LIMIT ? OFFSET ?");
@@ -70,7 +71,8 @@ public class FileRepository {
                   rs.getString("preview"),
                   rs.getDouble("r"),
                   rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes")));
+                  rs.getLong("sizeBytes"),
+                  rs.getDouble("pathScore")));
         }
       }
     } catch (SQLException e) {
@@ -84,7 +86,7 @@ public class FileRepository {
 
     StringBuilder sql =
         new StringBuilder(
-            "SELECT path, name, extension, lastModified, preview, sizeBytes, 0.0 AS r "
+            "SELECT path, name, extension, lastModified, preview, sizeBytes, pathScore, 0.0 AS r "
                 + "FROM files WHERE 1=1 ");
 
     if (!extensions.isEmpty()) {
@@ -98,6 +100,7 @@ public class FileRepository {
         switch (sort) {
           case DATE -> "ORDER BY lastModified DESC ";
           case SIZE -> "ORDER BY sizeBytes DESC ";
+          case PATH_SCORE -> "ORDER BY pathScore DESC ";
           default -> "ORDER BY lastModified DESC ";
         });
     sql.append("LIMIT ? OFFSET ?");
@@ -119,7 +122,8 @@ public class FileRepository {
                   rs.getString("preview"),
                   rs.getDouble("r"),
                   rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes")));
+                  rs.getLong("sizeBytes"),
+                  rs.getDouble("pathScore")));
         }
       }
     } catch (SQLException e) {
@@ -210,7 +214,7 @@ public class FileRepository {
         PreparedStatement d2 = connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
         PreparedStatement i1 =
             connection.prepareStatement(
-                "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview) VALUES (?,?,?,?,?,?)");
+                "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview, pathScore) VALUES (?,?,?,?,?,?,?)");
         PreparedStatement i2 =
             connection.prepareStatement(
                 "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
@@ -226,6 +230,7 @@ public class FileRepository {
       i1.setLong(4, record.sizeBytes());
       i1.setLong(5, record.lastModified());
       i1.setString(6, record.preview());
+      i1.setDouble(7, record.pathScore());
       i1.executeUpdate();
 
       i2.setString(1, record.path());
