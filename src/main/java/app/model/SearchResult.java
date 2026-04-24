@@ -7,4 +7,5 @@ public record SearchResult(
     String snippet,
     double score,
     long lastModified,
-    long sizeBytes) {}
+    long sizeBytes,
+    double pathScore) {}

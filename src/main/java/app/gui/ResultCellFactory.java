@@ -28,6 +28,7 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
       private final HBox topRow = new HBox(6);
       private final HBox metaRow = new HBox(10);
       private final Label rankLabel = new Label();
+      private final Label pathScoreLabel = new Label();
       private final Label nameLabel = new Label();
       private final Label extLabel = new Label();
       private final Label pathLabel = new Label();
@@ -40,6 +41,7 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         box.setPadding(new Insets(8, 14, 8, 14));
 
         rankLabel.getStyleClass().add("cell-rank");
+        pathScoreLabel.getStyleClass().add("cell-rank");
         nameLabel.getStyleClass().add("cell-name");
         extLabel.getStyleClass().add("cell-ext");
         pathLabel.getStyleClass().add("cell-path");
@@ -47,12 +49,14 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         sizeLabel.getStyleClass().add("cell-meta");
         dateLabel.getStyleClass().add("cell-meta");
 
+        Tooltip.install(rankLabel, new Tooltip("BM25 relevance score"));
         Tooltip.install(
-            rankLabel, new Tooltip("BM25 relevance score — higher means more relevant"));
+            pathScoreLabel,
+            new Tooltip("Path score — based on extension, depth, directory importance"));
 
         HBox.setHgrow(spacer, Priority.ALWAYS);
         topRow.setAlignment(Pos.CENTER_LEFT);
-        topRow.getChildren().addAll(rankLabel, nameLabel, spacer, extLabel);
+        topRow.getChildren().addAll(rankLabel, pathScoreLabel, nameLabel, spacer, extLabel);
 
         metaRow.setAlignment(Pos.CENTER_LEFT);
         metaRow.getChildren().addAll(sizeLabel, dateLabel);
@@ -73,6 +77,7 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         }
 
         rankLabel.setText(String.format("%.2f", Math.abs(r.score())));
+        pathScoreLabel.setText(String.format("P:%.2f", r.pathScore()));
         nameLabel.setText(r.name());
 
         String ext = r.extension();
