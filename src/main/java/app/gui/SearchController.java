@@ -7,14 +7,17 @@ import app.model.IndexReport;
 import app.model.SearchResult;
 import app.search.RankingStrategy;
 import app.search.SearchEngine;
+import app.search.SearchHistoryService;
 import app.util.FileTypes;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
+import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -63,9 +66,16 @@ public class SearchController {
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
+  private SearchEngine engine;
+  private SearchHistoryService historyService;
+  private final ContextMenu suggestionsPopup = new ContextMenu();
 
   public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
-    searchVM = new SearchViewModel(engine, repository);
+    this.engine = engine;
+    historyService = new SearchHistoryService();
+    engine.addObserver(historyService);
+
+    searchVM = new SearchViewModel(engine, repository, historyService);
     indexVM = new IndexViewModel(factory);
 
     indexVM.setOnIndexComplete(
@@ -142,9 +152,35 @@ public class SearchController {
   private void setupLiveSearch() {
     liveSearchDelay = new PauseTransition(Duration.millis(350));
     liveSearchDelay.setOnFinished(e -> triggerSearch());
-    searchField.textProperty().addListener((obs, old, val) -> liveSearchDelay.playFromStart());
+    searchField
+        .textProperty()
+        .addListener(
+            (obs, old, val) -> {
+              liveSearchDelay.playFromStart();
+              updateSuggestions(val.trim());
+            });
     extFilter.valueProperty().addListener((obs, old, val) -> triggerSearch());
     dirFilter.textProperty().addListener((obs, old, val) -> liveSearchDelay.playFromStart());
+  }
+
+  private void updateSuggestions(String prefix) {
+    suggestionsPopup.hide();
+    if (prefix.isBlank()) return;
+    List<String> suggestions = historyService.suggest(prefix);
+    if (suggestions.isEmpty()) return;
+    suggestionsPopup.getItems().clear();
+    for (String suggestion : suggestions) {
+      MenuItem item = new MenuItem(suggestion);
+      item.setOnAction(
+          e -> {
+            searchField.setText(suggestion);
+            searchField.positionCaret(suggestion.length());
+            suggestionsPopup.hide();
+            triggerSearch();
+          });
+      suggestionsPopup.getItems().add(item);
+    }
+    suggestionsPopup.show(searchField, Side.BOTTOM, 0, 0);
   }
 
   private void triggerSearch() {
@@ -207,20 +243,17 @@ public class SearchController {
 
   private void onResultSelected(SearchResult result) {
     if (result == null) return;
-
     previewFileLabel.setText(result.name());
     filePathLabel.setText(result.path());
     fileExtLabel.setText(
         result.extension() != null && !result.extension().isBlank()
             ? "." + result.extension()
             : "");
-
     String content =
         result.snippet() != null && !result.snippet().isBlank()
             ? result.snippet()
             : "(no preview — binary or unreadable file)";
     String query = extractTerms(searchField.getText().trim());
-
     previewFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
     tabPane.getSelectionModel().select(0);
     loadFullFile(result, query);
@@ -239,26 +272,23 @@ public class SearchController {
               result.sizeBytes() / (1024.0 * 1024), MAX_PREVIEW_BYTES / (1024.0 * 1024)));
       return;
     }
-
     showFullFileMessage("Loading…");
     final String path = result.path();
     final SearchResult token = result;
     Thread.ofVirtual()
         .start(
             () -> {
-              String content;
+              String c;
               try {
-                content = Files.readString(Path.of(path));
+                c = Files.readString(Path.of(path));
               } catch (IOException e) {
-                content = "(could not read file: " + e.getMessage() + ")";
+                c = "(could not read file: " + e.getMessage() + ")";
               }
-              final String finalContent = content;
+              final String fc = c;
               javafx.application.Platform.runLater(
                   () -> {
                     if (resultsList.getSelectionModel().getSelectedItem() == token)
-                      fullFileFlow
-                          .getChildren()
-                          .setAll(TextHighlighter.highlight(finalContent, query));
+                      fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
                   });
             });
   }
@@ -303,14 +333,12 @@ public class SearchController {
     String format = reportFormatChoice.getValue();
     String content = format.equals("JSON") ? toJson(report) : toText(report);
     String ext = format.equals("JSON") ? ".json" : ".txt";
-
     javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
     chooser.setTitle("Save Report");
     chooser.setInitialFileName("index_report" + ext);
     chooser
         .getExtensionFilters()
         .add(new javafx.stage.FileChooser.ExtensionFilter(format + " file", "*" + ext));
-
     java.io.File file = chooser.showSaveDialog(pathField.getScene().getWindow());
     if (file == null) return;
     try {

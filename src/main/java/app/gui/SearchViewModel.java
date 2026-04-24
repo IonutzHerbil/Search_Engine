@@ -4,6 +4,7 @@ import app.db.FileRepository;
 import app.model.SearchResult;
 import app.search.RankingStrategy;
 import app.search.SearchEngine;
+import app.search.SearchHistoryService;
 import java.util.List;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -20,6 +21,7 @@ public class SearchViewModel {
 
   private final SearchEngine engine;
   private final FileRepository repository;
+  private final SearchHistoryService historyService;
 
   private final ObservableList<SearchResult> results = FXCollections.observableArrayList();
   private final ObservableList<String> availableExtensions = FXCollections.observableArrayList();
@@ -31,9 +33,11 @@ public class SearchViewModel {
   private String currentQuery = "";
   private int currentOffset = 0;
 
-  public SearchViewModel(SearchEngine engine, FileRepository repository) {
+  public SearchViewModel(
+      SearchEngine engine, FileRepository repository, SearchHistoryService historyService) {
     this.engine = engine;
     this.repository = repository;
+    this.historyService = historyService;
   }
 
   public void search(String terms, String ext, String dir) {
@@ -45,11 +49,13 @@ public class SearchViewModel {
         .start(
             () -> {
               List<SearchResult> found = engine.search(query, PAGE_SIZE, 0, strat);
+              if (strat.requiresBm25()) found = historyService.boost(found);
+              final List<SearchResult> page = found;
               javafx.application.Platform.runLater(
                   () -> {
-                    results.setAll(found);
-                    currentOffset = found.size();
-                    hasMore.set(found.size() == PAGE_SIZE);
+                    results.setAll(page);
+                    currentOffset = page.size();
+                    hasMore.set(page.size() == PAGE_SIZE);
                     updateCount();
                   });
             });
@@ -64,11 +70,13 @@ public class SearchViewModel {
         .start(
             () -> {
               List<SearchResult> more = engine.search(query, PAGE_SIZE, offset, strat);
+              if (strat.requiresBm25()) more = historyService.boost(more);
+              final List<SearchResult> page = more;
               javafx.application.Platform.runLater(
                   () -> {
-                    results.addAll(more);
-                    currentOffset += more.size();
-                    hasMore.set(more.size() == PAGE_SIZE);
+                    results.addAll(page);
+                    currentOffset += page.size();
+                    hasMore.set(page.size() == PAGE_SIZE);
                     updateCount();
                   });
             });
