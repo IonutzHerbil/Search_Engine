@@ -1,5 +1,6 @@
 package app.search;
 
+import app.db.FileRepository;
 import app.model.SearchResult;
 import java.util.Comparator;
 import java.util.List;
@@ -11,16 +12,29 @@ public class SearchHistoryService implements SearchObserver {
 
   private static final int MAX_HISTORY = 500;
   private static final int MAX_SUGGESTION = 5;
-  private static final double BOOST_PER_HIT = 0.05;
+  private static final double BOOST_PER_HIT = 0.01;
+  private static final double MAX_BOOST = 2.0;
 
   private final List<SearchEvent> history = new CopyOnWriteArrayList<>();
   private final Map<String, Long> frequency = new ConcurrentHashMap<>();
+  private final FileRepository repository;
+
+  public SearchHistoryService(FileRepository repository) {
+    this.repository = repository;
+  }
 
   @Override
   public void onSearch(SearchEvent event) {
     if (history.size() >= MAX_HISTORY) history.remove(0);
     history.add(event);
     frequency.merge(normalise(event.query()), 1L, Long::sum);
+  }
+
+  public void onResultsReturned(List<SearchResult> results) {
+    if (results.isEmpty()) return;
+    for (SearchResult r : results) {
+      repository.boostPathScore(r.path(), BOOST_PER_HIT, MAX_BOOST);
+    }
   }
 
   public List<String> suggest(String prefix) {

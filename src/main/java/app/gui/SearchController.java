@@ -72,7 +72,7 @@ public class SearchController {
 
   public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
     this.engine = engine;
-    historyService = new SearchHistoryService();
+    historyService = new SearchHistoryService(repository);
     engine.addObserver(historyService);
 
     searchVM = new SearchViewModel(engine, repository, historyService);

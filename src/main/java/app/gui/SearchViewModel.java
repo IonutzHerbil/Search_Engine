@@ -50,6 +50,7 @@ public class SearchViewModel {
             () -> {
               List<SearchResult> found = engine.search(query, PAGE_SIZE, 0, strat);
               if (strat.requiresBm25()) found = historyService.boost(found);
+              historyService.onResultsReturned(found);
               final List<SearchResult> page = found;
               javafx.application.Platform.runLater(
                   () -> {
@@ -71,6 +72,7 @@ public class SearchViewModel {
             () -> {
               List<SearchResult> more = engine.search(query, PAGE_SIZE, offset, strat);
               if (strat.requiresBm25()) more = historyService.boost(more);
+              historyService.onResultsReturned(more);
               final List<SearchResult> page = more;
               javafx.application.Platform.runLater(
                   () -> {

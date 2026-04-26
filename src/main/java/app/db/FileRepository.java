@@ -258,4 +258,18 @@ public class FileRepository {
       System.err.println("[COMMIT ERROR] " + e.getMessage());
     }
   }
+
+  public void boostPathScore(String path, double delta, double max) {
+    try (PreparedStatement stmt =
+        connection.prepareStatement(
+            "UPDATE files SET pathScore = MIN(pathScore + ?, ?) WHERE path = ?")) {
+      stmt.setDouble(1, delta);
+      stmt.setDouble(2, max);
+      stmt.setString(3, path);
+      stmt.executeUpdate();
+      connection.commit();
+    } catch (SQLException e) {
+      System.err.println("[BOOST ERROR] " + e.getMessage());
+    }
+  }
 }
