@@ -2,6 +2,8 @@ package app.search;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SearchRequestParser {
 
@@ -10,32 +12,34 @@ public class SearchRequestParser {
   private static final String CONTENT_PREFIX = "content:";
   private static final String NAME_PREFIX = "name:";
 
-  public SearchRequest parse(String raw) {
-    String[] parts = raw.trim().split("\\s+");
+  private static final Pattern TOKEN_PATTERN =
+      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+\\*?|\\S+");
 
+  public SearchRequest parse(String raw) {
+    List<String> tokens = tokenise(raw.trim());
     StringBuilder ftsTerms = new StringBuilder();
     StringBuilder contentValue = new StringBuilder();
     List<StringBuilder> pathSegments = new ArrayList<>();
     List<String> extensions = new ArrayList<>();
     String activeQualifier = null;
 
-    for (String part : parts) {
-      String lower = part.toLowerCase();
+    for (String token : tokens) {
+      String lower = token.toLowerCase();
 
       if (lower.startsWith(EXT_PREFIX)) {
         activeQualifier = null;
-        String val = part.substring(EXT_PREFIX.length()).toLowerCase();
+        String val = token.substring(EXT_PREFIX.length()).toLowerCase();
         if (!val.isBlank()) extensions.add(val);
 
       } else if (lower.startsWith(PATH_PREFIX)) {
         pathSegments.add(new StringBuilder());
         activeQualifier = "path";
-        String val = part.substring(PATH_PREFIX.length());
+        String val = token.substring(PATH_PREFIX.length());
         if (!val.isBlank()) pathSegments.getLast().append(val);
 
       } else if (lower.startsWith(CONTENT_PREFIX)) {
         activeQualifier = "content";
-        String val = sanitize(part.substring(CONTENT_PREFIX.length()));
+        String val = token.substring(CONTENT_PREFIX.length());
         if (!val.isBlank()) {
           if (!contentValue.isEmpty()) contentValue.append(" ");
           contentValue.append(val);
@@ -43,7 +47,7 @@ public class SearchRequestParser {
 
       } else if (lower.startsWith(NAME_PREFIX)) {
         activeQualifier = null;
-        String val = sanitize(part.substring(NAME_PREFIX.length()));
+        String val = token.substring(NAME_PREFIX.length());
         if (!val.isBlank()) {
           if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
           ftsTerms.append("name:").append(val);
@@ -52,21 +56,15 @@ public class SearchRequestParser {
       } else if ("path".equals(activeQualifier)) {
         StringBuilder current = pathSegments.getLast();
         if (!current.isEmpty()) current.append(" ");
-        current.append(part);
+        current.append(token);
 
       } else if ("content".equals(activeQualifier)) {
-        String val = sanitize(part);
-        if (!val.isBlank()) {
-          if (!contentValue.isEmpty()) contentValue.append(" ");
-          contentValue.append(val);
-        }
+        if (!contentValue.isEmpty()) contentValue.append(" ");
+        contentValue.append(token);
 
       } else {
-        String val = sanitize(part);
-        if (!val.isBlank()) {
-          if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
-          ftsTerms.append(val);
-        }
+        if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
+        ftsTerms.append(token);
       }
     }
 
@@ -81,7 +79,10 @@ public class SearchRequestParser {
     return new SearchRequest(ftsTerms.toString(), extensions, directories);
   }
 
-  private String sanitize(String s) {
-    return s.replaceAll("[^\\p{L}\\p{N}\\s]", " ").trim();
+  private List<String> tokenise(String raw) {
+    List<String> tokens = new ArrayList<>();
+    Matcher m = TOKEN_PATTERN.matcher(raw);
+    while (m.find()) tokens.add(m.group());
+    return tokens;
   }
 }

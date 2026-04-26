@@ -42,7 +42,7 @@ public class FileRepository {
                 + "JOIN files f ON f.path = fts.path ");
 
     if (!extensions.isEmpty()) {
-      sql.append("AND f.extension IN (")
+      sql.append("AND LOWER(f.extension) IN (")
           .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
           .append(") ");
     }
@@ -92,7 +92,7 @@ public class FileRepository {
                 + "FROM files WHERE 1=1 ");
 
     if (!extensions.isEmpty()) {
-      sql.append("AND extension IN (")
+      sql.append("AND LOWER(extension) IN (")
           .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
           .append(") ");
     }
