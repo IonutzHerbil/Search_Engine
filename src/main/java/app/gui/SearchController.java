@@ -320,6 +320,7 @@ public class SearchController {
           || lower.startsWith("path:")
           || lower.startsWith("content:")
           || lower.startsWith("name:")) continue;
+      if (lower.equals("and") || lower.equals("or") || lower.equals("not")) continue;
       if (!sb.isEmpty()) sb.append(" ");
       sb.append(part);
     }

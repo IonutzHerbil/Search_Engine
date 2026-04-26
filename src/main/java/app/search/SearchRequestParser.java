@@ -63,8 +63,17 @@ public class SearchRequestParser {
         contentValue.append(token);
 
       } else {
-        if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
-        ftsTerms.append(token);
+        if (token.startsWith("\"") && token.endsWith("\"")) {
+          String inner =
+              token.substring(1, token.length() - 1).replaceAll("[^\\p{L}\\p{N}\\s]", " ").trim();
+          if (!inner.isBlank()) {
+            if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
+            ftsTerms.append("\"").append(inner).append("\"");
+          }
+        } else {
+          if (!ftsTerms.isEmpty()) ftsTerms.append(" ");
+          ftsTerms.append(token);
+        }
       }
     }
 
