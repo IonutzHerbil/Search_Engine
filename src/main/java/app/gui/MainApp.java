@@ -58,6 +58,7 @@ public class MainApp extends Application {
                       if (response != ButtonType.OK) e.consume();
                     });
           }
+          controller.stopWatcher();
         });
 
     stage.setTitle("Search Engine");

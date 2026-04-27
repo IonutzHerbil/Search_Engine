@@ -272,4 +272,18 @@ public class FileRepository {
       System.err.println("[BOOST ERROR] " + e.getMessage());
     }
   }
+
+  public void deletePath(String path) {
+    try (PreparedStatement d1 = connection.prepareStatement("DELETE FROM files WHERE path = ?");
+        PreparedStatement d2 =
+            connection.prepareStatement("DELETE FROM files_fts WHERE path = ?")) {
+      d1.setString(1, path);
+      d1.executeUpdate();
+      d2.setString(1, path);
+      d2.executeUpdate();
+      connection.commit();
+    } catch (SQLException e) {
+      System.err.println("[DELETE ERROR] " + e.getMessage());
+    }
+  }
 }

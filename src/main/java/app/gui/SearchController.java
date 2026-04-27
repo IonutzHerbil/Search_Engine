@@ -76,7 +76,7 @@ public class SearchController {
     engine.addObserver(historyService);
 
     searchVM = new SearchViewModel(engine, repository, historyService);
-    indexVM = new IndexViewModel(factory);
+    indexVM = new IndexViewModel(factory, repository, new app.processor.ContentExtractor());
 
     indexVM.setOnIndexComplete(
         () -> {
@@ -404,5 +404,9 @@ public class SearchController {
 
   public boolean isIndexing() {
     return indexVM.isIndexing();
+  }
+
+  public void stopWatcher() {
+    indexVM.stopWatcher();
   }
 }
