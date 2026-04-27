@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FileRepository {
 
@@ -285,5 +286,32 @@ public class FileRepository {
     } catch (SQLException e) {
       System.err.println("[DELETE ERROR] " + e.getMessage());
     }
+  }
+
+  public long countFiles() {
+    try (PreparedStatement stmt = connection.prepareStatement("SELECT COUNT(*) FROM files");
+        ResultSet rs = stmt.executeQuery()) {
+      if (rs.next()) return rs.getLong(1);
+    } catch (SQLException e) {
+      System.err.println("[STATS ERROR] " + e.getMessage());
+    }
+    return 0;
+  }
+
+  public List<Map.Entry<String, Long>> topExtensions(int n) {
+    List<Map.Entry<String, Long>> result = new ArrayList<>();
+    try (PreparedStatement stmt =
+        connection.prepareStatement(
+            "SELECT LOWER(extension) AS ext, COUNT(*) AS cnt FROM files "
+                + "WHERE extension IS NOT NULL AND extension != '' "
+                + "GROUP BY LOWER(extension) ORDER BY cnt DESC LIMIT ?")) {
+      stmt.setInt(1, n);
+      try (ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) result.add(Map.entry(rs.getString("ext"), rs.getLong("cnt")));
+      }
+    } catch (SQLException e) {
+      System.err.println("[STATS ERROR] " + e.getMessage());
+    }
+    return result;
   }
 }

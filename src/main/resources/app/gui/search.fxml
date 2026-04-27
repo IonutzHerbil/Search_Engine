@@ -181,6 +181,45 @@
                     </VBox>
                 </Tab>
 
+                <Tab text="Analytics">
+                    <ScrollPane fitToWidth="true" styleClass="code-scroll">
+                        <VBox spacing="20">
+                            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                            <HBox spacing="24">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="SEARCHES THIS SESSION" styleClass="analytics-header"/>
+                                    <Label fx:id="totalSearchesLabel" text="0" styleClass="analytics-big"/>
+                                </VBox>
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="FILES INDEXED" styleClass="analytics-header"/>
+                                    <Label fx:id="totalFilesLabel" text="0" styleClass="analytics-big"/>
+                                </VBox>
+                            </HBox>
+
+                            <Separator styleClass="thin-sep"/>
+
+                            <HBox spacing="16">
+                                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                                    <Label text="TOP QUERIES" styleClass="analytics-header"/>
+                                    <ListView fx:id="topQueriesList" prefHeight="160"
+                                              styleClass="analytics-list"/>
+                                </VBox>
+                                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                                    <Label text="TOP EXTENSIONS" styleClass="analytics-header"/>
+                                    <ListView fx:id="topExtensionsList" prefHeight="160"
+                                              styleClass="analytics-list"/>
+                                </VBox>
+                            </HBox>
+
+                            <VBox spacing="6">
+                                <Label text="RECENT SEARCHES" styleClass="analytics-header"/>
+                                <ListView fx:id="recentSearchesList" prefHeight="180"
+                                          styleClass="analytics-list"/>
+                            </VBox>
+                        </VBox>
+                    </ScrollPane>
+                </Tab>
+
             </TabPane>
         </center>
     </BorderPane>

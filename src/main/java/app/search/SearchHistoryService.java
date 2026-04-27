@@ -53,6 +53,23 @@ public class SearchHistoryService implements SearchObserver {
     return results.stream().sorted(Comparator.comparingDouble(this::boostedScore)).toList();
   }
 
+  public long totalSearches() {
+    return history.size();
+  }
+
+  public List<Map.Entry<String, Long>> topQueries(int n) {
+    return frequency.entrySet().stream()
+        .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+        .limit(n)
+        .toList();
+  }
+
+  public List<SearchEvent> recentHistory(int n) {
+    List<SearchEvent> snap = List.copyOf(history);
+    int from = Math.max(0, snap.size() - n);
+    return snap.subList(from, snap.size()).reversed();
+  }
+
   private double boostedScore(SearchResult r) {
     long freq = frequency.getOrDefault(r.name().toLowerCase(), 0L);
     return r.score() - (freq * BOOST_PER_HIT);

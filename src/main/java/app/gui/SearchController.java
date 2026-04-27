@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import javafx.animation.PauseTransition;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
@@ -62,16 +63,23 @@ public class SearchController {
   @FXML private Label reportTotal;
   @FXML private Label reportNew;
   @FXML private Label reportUpdated;
+  @FXML private Label totalSearchesLabel;
+  @FXML private Label totalFilesLabel;
+  @FXML private ListView<String> topQueriesList;
+  @FXML private ListView<String> topExtensionsList;
+  @FXML private ListView<String> recentSearchesList;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
   private SearchEngine engine;
   private SearchHistoryService historyService;
+  private FileRepository repository;
   private final ContextMenu suggestionsPopup = new ContextMenu();
 
   public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
     this.engine = engine;
+    this.repository = repository;
     historyService = new SearchHistoryService(repository);
     engine.addObserver(historyService);
 
@@ -82,6 +90,7 @@ public class SearchController {
         () -> {
           searchVM.refreshExtensions();
           updateReportBox(indexVM.reportProperty().get());
+          refreshAnalytics();
         });
 
     bindUI();
@@ -97,6 +106,7 @@ public class SearchController {
 
     setupLiveSearch();
     searchVM.refreshExtensions();
+    refreshAnalytics();
   }
 
   private void bindUI() {
@@ -126,13 +136,12 @@ public class SearchController {
     loadMoreButton.visibleProperty().bind(searchVM.hasMoreProperty());
     loadMoreButton.managedProperty().bind(searchVM.hasMoreProperty());
 
-    reportFormatChoice.setItems(
-        javafx.collections.FXCollections.observableArrayList("TEXT", "JSON"));
+    reportFormatChoice.setItems(FXCollections.observableArrayList("TEXT", "JSON"));
     reportFormatChoice.setValue("TEXT");
     exportReportButton.disableProperty().bind(indexVM.reportProperty().isNull());
 
     sortChoice.setItems(
-        javafx.collections.FXCollections.observableArrayList(
+        FXCollections.observableArrayList(
             RankingStrategy.ALL.stream().map(RankingStrategy::label).toList()));
     sortChoice.setValue(RankingStrategy.RELEVANCE.label());
     sortChoice
@@ -188,6 +197,36 @@ public class SearchController {
     if (query.isBlank()) return;
     searchVM.search(query, extFilter.getValue(), dirFilter.getText().trim());
     if (!searchVM.getResults().isEmpty()) resultsList.getSelectionModel().selectFirst();
+    refreshAnalytics();
+  }
+
+  private void refreshAnalytics() {
+    totalSearchesLabel.setText(String.valueOf(historyService.totalSearches()));
+
+    List<String> top =
+        historyService.topQueries(10).stream().map(e -> e.getKey() + "  ×" + e.getValue()).toList();
+    topQueriesList.setItems(FXCollections.observableArrayList(top));
+
+    List<String> recent =
+        historyService.recentHistory(20).stream()
+            .map(e -> e.timestamp().toString().substring(11, 19) + "  " + e.query())
+            .toList();
+    recentSearchesList.setItems(FXCollections.observableArrayList(recent));
+
+    Thread.ofVirtual()
+        .start(
+            () -> {
+              long fileCount = repository.countFiles();
+              List<String> exts =
+                  repository.topExtensions(8).stream()
+                      .map(e -> "." + e.getKey() + "  " + e.getValue())
+                      .toList();
+              javafx.application.Platform.runLater(
+                  () -> {
+                    totalFilesLabel.setText(String.valueOf(fileCount));
+                    topExtensionsList.setItems(FXCollections.observableArrayList(exts));
+                  });
+            });
   }
 
   @FXML

@@ -324,3 +324,39 @@
     -fx-font-family: "Consolas", monospace;
     -fx-padding: 0 8 0 0;
 }
+
+.analytics-header {
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #4c566a;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.analytics-big {
+    -fx-font-size: 36px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #88c0d0;
+    -fx-font-family: "Consolas", monospace;
+}
+
+.analytics-list {
+    -fx-background-color: #3b4252;
+    -fx-border-color: #434c5e;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-font-family: "Consolas", monospace;
+    -fx-font-size: 13px;
+}
+
+.analytics-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e5e9f0;
+    -fx-padding: 4 10;
+    -fx-border-color: transparent transparent #434c5e transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.analytics-list .list-cell:selected {
+    -fx-background-color: #434c5e;
+}
