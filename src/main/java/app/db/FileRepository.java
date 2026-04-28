@@ -31,8 +31,8 @@ public class FileRepository {
 
     String inner =
         strategy.requiresBm25()
-            ? "SELECT path, bm25(files_fts) AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000"
-            : "SELECT path, 0.0              AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000";
+            ? "SELECT path, bm25(files_fts, 10.0, 1.0) AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000"
+            : "SELECT path, 0.0 AS r FROM files_fts WHERE files_fts MATCH ? LIMIT 5000";
 
     StringBuilder sql =
         new StringBuilder(
@@ -62,16 +62,7 @@ public class FileRepository {
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(
-              new SearchResult(
-                  rs.getString("path"),
-                  rs.getString("name"),
-                  rs.getString("extension"),
-                  rs.getString("preview"),
-                  rs.getDouble("r"),
-                  rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes"),
-                  rs.getDouble("pathScore")));
+          results.add(mapRow(rs));
         }
       }
     } catch (SQLException e) {
@@ -97,7 +88,7 @@ public class FileRepository {
           .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
           .append(") ");
     }
-    for (int d = 0; d < directories.size(); d++) sql.append("AND path LIKE ? ");
+    sql.append("AND path LIKE ? ".repeat(directories.size()));
 
     String orderBy =
         strategy
@@ -106,7 +97,7 @@ public class FileRepository {
             .replace("f.sizeBytes", "sizeBytes")
             .replace("f.pathScore", "pathScore")
             .replace("f.name", "name")
-            .replace("fts.r", "0");
+            .replace("fts.r", "r");
 
     sql.append(orderBy);
     sql.append("LIMIT ? OFFSET ?");
@@ -120,22 +111,25 @@ public class FileRepository {
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(
-              new SearchResult(
-                  rs.getString("path"),
-                  rs.getString("name"),
-                  rs.getString("extension"),
-                  rs.getString("preview"),
-                  rs.getDouble("r"),
-                  rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes"),
-                  rs.getDouble("pathScore")));
+          results.add(mapRow(rs));
         }
       }
     } catch (SQLException e) {
       System.err.println("[METADATA SEARCH ERROR] " + e.getMessage());
     }
     return results;
+  }
+
+  private SearchResult mapRow(ResultSet rs) throws SQLException {
+    return new SearchResult(
+        rs.getString("path"),
+        rs.getString("name"),
+        rs.getString("extension"),
+        rs.getString("preview"),
+        rs.getDouble("r"),
+        rs.getLong("lastModified"),
+        rs.getLong("sizeBytes"),
+        rs.getDouble("pathScore"));
   }
 
   public List<SearchResult> search(

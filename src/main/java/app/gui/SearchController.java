@@ -194,9 +194,22 @@ public class SearchController {
 
   private void triggerSearch() {
     String query = searchField.getText().trim();
-    if (query.isBlank()) return;
-    searchVM.search(query, extFilter.getValue(), dirFilter.getText().trim());
-    if (!searchVM.getResults().isEmpty()) resultsList.getSelectionModel().selectFirst();
+    String ext = extFilter.getValue();
+    String dir = dirFilter.getText().trim();
+
+    boolean noQuery = query.isBlank();
+    boolean noExt = ext == null || ext.isBlank();
+    boolean noDir = dir.isBlank();
+    if (noQuery && noExt && noDir) {
+      searchVM.getResults().clear();
+      searchVM.resultCountProperty().set("");
+      return;
+    }
+    searchVM.search(query, noExt ? "" : ext.trim(), dir);
+
+    if (!searchVM.getResults().isEmpty()) {
+      resultsList.getSelectionModel().selectFirst();
+    }
     refreshAnalytics();
   }
 
