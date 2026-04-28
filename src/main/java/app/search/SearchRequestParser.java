@@ -13,7 +13,7 @@ public class SearchRequestParser {
   private static final String NAME_PREFIX = "name:";
 
   private static final Pattern TOKEN_PATTERN =
-      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+\\*?|\\S+");
+      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+:[^\\s]+|\\w+\\*?|\\S+");
 
   public SearchRequest parse(String raw) {
     List<String> tokens = tokenise(raw.trim());

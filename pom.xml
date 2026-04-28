@@ -80,13 +80,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
-                    <argLine>
-                        --add-opens app/app.search=ALL-UNNAMED
-                        --add-opens app/app.indexer=ALL-UNNAMED
-                        --add-opens app/app.db=ALL-UNNAMED
-                        --add-opens app/app.model=ALL-UNNAMED
-                        --add-opens app/app.util=ALL-UNNAMED
-                    </argLine>
+                    <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
             <plugin>
