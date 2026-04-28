@@ -74,7 +74,7 @@ class RankingIntegrationTest {
     insertMockFile("/a/AppConfig.java", "AppConfig.java", "config file", 100, 1.0);
     insertMockFile("/b/IndexConfig.java", "IndexConfig.java", "config file", 100, 1.0);
 
-    List<SearchResult> initialResults = engine.search("config");
+    List<SearchResult> initialResults = engine.search("indexconfig");
 
     for (int i = 0; i < 50; i++) {
       history.onSearch(new SearchEvent("config", java.time.Instant.now()));
