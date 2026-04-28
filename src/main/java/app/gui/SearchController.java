@@ -8,10 +8,6 @@ import app.model.SearchResult;
 import app.search.RankingStrategy;
 import app.search.SearchEngine;
 import app.search.SearchHistoryService;
-import app.util.FileTypes;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -72,13 +68,11 @@ public class SearchController {
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
-  private SearchEngine engine;
   private SearchHistoryService historyService;
   private FileRepository repository;
   private final ContextMenu suggestionsPopup = new ContextMenu();
 
   public void init(IndexerFactory factory, SearchEngine engine, FileRepository repository) {
-    this.engine = engine;
     this.repository = repository;
     historyService = new SearchHistoryService(repository);
     engine.addObserver(historyService);
@@ -312,11 +306,6 @@ public class SearchController {
   }
 
   private void loadFullFile(SearchResult result, String query) {
-    String ext = result.extension();
-    if (ext == null || ext.isBlank() || !FileTypes.isText(ext)) {
-      showFullFileMessage("(binary or non-text file — see preview above)");
-      return;
-    }
     if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
       showFullFileMessage(
           String.format(
@@ -324,23 +313,27 @@ public class SearchController {
               result.sizeBytes() / (1024.0 * 1024), MAX_PREVIEW_BYTES / (1024.0 * 1024)));
       return;
     }
+
     showFullFileMessage("Loading…");
     final String path = result.path();
     final SearchResult token = result;
+
     Thread.ofVirtual()
         .start(
             () -> {
-              String c;
-              try {
-                c = Files.readString(Path.of(path));
-              } catch (IOException e) {
-                c = "(could not read file: " + e.getMessage() + ")";
+              String c = repository.getFullContent(path);
+
+              if (c == null || c.isBlank()) {
+                c = "(binary or non-text file — no readable content extracted)";
               }
+
               final String fc = c;
+
               javafx.application.Platform.runLater(
                   () -> {
-                    if (resultsList.getSelectionModel().getSelectedItem() == token)
+                    if (resultsList.getSelectionModel().getSelectedItem() == token) {
                       fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
+                    }
                   });
             });
   }

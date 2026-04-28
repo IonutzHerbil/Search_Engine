@@ -317,4 +317,19 @@ public class FileRepository {
     }
     return result;
   }
+
+  public String getFullContent(String path) {
+    try (PreparedStatement stmt =
+        connection.prepareStatement("SELECT content FROM files_fts WHERE path = ?")) {
+      stmt.setString(1, path);
+      try (ResultSet rs = stmt.executeQuery()) {
+        if (rs.next()) {
+          return rs.getString("content");
+        }
+      }
+    } catch (SQLException e) {
+      System.err.println("[FETCH ERROR] Could not retrieve content: " + e.getMessage());
+    }
+    return null;
+  }
 }

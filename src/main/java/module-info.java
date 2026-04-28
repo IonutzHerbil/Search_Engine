@@ -4,6 +4,7 @@ module app {
   requires java.sql;
   requires org.xerial.sqlitejdbc;
   requires atlantafx.base;
+  requires org.apache.tika.core;
 
   opens app.gui to
       javafx.fxml;
