@@ -62,7 +62,16 @@ public class FileRepository {
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(mapRow(rs));
+          results.add(
+              new SearchResult(
+                  rs.getString("path"),
+                  rs.getString("name"),
+                  rs.getString("extension"),
+                  rs.getString("preview"),
+                  rs.getDouble("r"),
+                  rs.getLong("lastModified"),
+                  rs.getLong("sizeBytes"),
+                  rs.getDouble("pathScore")));
         }
       }
     } catch (SQLException e) {
@@ -88,7 +97,7 @@ public class FileRepository {
           .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
           .append(") ");
     }
-    sql.append("AND path LIKE ? ".repeat(directories.size()));
+    for (int d = 0; d < directories.size(); d++) sql.append("AND path LIKE ? ");
 
     String orderBy =
         strategy
@@ -111,25 +120,22 @@ public class FileRepository {
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
         while (rs.next()) {
-          results.add(mapRow(rs));
+          results.add(
+              new SearchResult(
+                  rs.getString("path"),
+                  rs.getString("name"),
+                  rs.getString("extension"),
+                  rs.getString("preview"),
+                  rs.getDouble("r"),
+                  rs.getLong("lastModified"),
+                  rs.getLong("sizeBytes"),
+                  rs.getDouble("pathScore")));
         }
       }
     } catch (SQLException e) {
       System.err.println("[METADATA SEARCH ERROR] " + e.getMessage());
     }
     return results;
-  }
-
-  private SearchResult mapRow(ResultSet rs) throws SQLException {
-    return new SearchResult(
-        rs.getString("path"),
-        rs.getString("name"),
-        rs.getString("extension"),
-        rs.getString("preview"),
-        rs.getDouble("r"),
-        rs.getLong("lastModified"),
-        rs.getLong("sizeBytes"),
-        rs.getDouble("pathScore"));
   }
 
   public List<SearchResult> search(
@@ -233,8 +239,11 @@ public class FileRepository {
       i1.setDouble(7, record.pathScore());
       i1.executeUpdate();
 
+      String normalizedName =
+          record.name() + " " + record.name().replaceAll("([a-z])([A-Z]+)", "$1 $2").toLowerCase();
+
       i2.setString(1, record.path());
-      i2.setString(2, record.name());
+      i2.setString(2, normalizedName);
       i2.setString(3, record.content() != null ? record.content() : "");
       i2.executeUpdate();
     } catch (SQLException e) {

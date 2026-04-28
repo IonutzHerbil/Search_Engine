@@ -32,9 +32,9 @@ public class SearchEngine {
   }
 
   public List<SearchResult> search(String raw, int limit, int offset, RankingStrategy strategy) {
-    if (raw == null || raw.isBlank()) return List.of();
-    SearchRequest request = parser.parse(raw);
-    notifyObservers(raw);
+    String safeRaw = raw == null ? "" : raw;
+    SearchRequest request = parser.parse(safeRaw);
+    notifyObservers(safeRaw);
     return repository.search(
         request.terms(), request.extensions(), request.directories(), limit, offset, strategy);
   }

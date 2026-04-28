@@ -71,8 +71,17 @@ public class SearchHistoryService implements SearchObserver {
   }
 
   private double boostedScore(SearchResult r) {
-    long freq = frequency.getOrDefault(r.name().toLowerCase(), 0L);
-    return r.score() - (freq * BOOST_PER_HIT);
+    double boost = 0.0;
+    String lowerName = r.name().toLowerCase();
+
+    for (Map.Entry<String, Long> entry : frequency.entrySet()) {
+      String pastQuery = entry.getKey();
+      if (!pastQuery.isBlank() && lowerName.contains(pastQuery)) {
+        boost += (entry.getValue() * BOOST_PER_HIT);
+      }
+    }
+
+    return r.score() - Math.min(boost, MAX_BOOST);
   }
 
   private String normalise(String s) {
