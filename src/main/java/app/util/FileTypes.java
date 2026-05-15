@@ -31,8 +31,15 @@ public final class FileTypes {
           "text",
           "cs");
 
+  private static final Set<String> IMAGE_EXTENSIONS =
+      Set.of("jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif", "ico");
+
   public static boolean isText(String extension) {
     return TEXT_EXTENSIONS.contains(extension.toLowerCase());
+  }
+
+  public static boolean isImage(String extension) {
+    return IMAGE_EXTENSIONS.contains(extension.toLowerCase());
   }
 
   public static String parseExtension(String name) {
