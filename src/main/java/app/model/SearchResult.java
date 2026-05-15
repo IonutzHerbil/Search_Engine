@@ -8,4 +8,5 @@ public record SearchResult(
     double score,
     long lastModified,
     long sizeBytes,
-    double pathScore) {}
+    double pathScore,
+    String dominantColor) {}

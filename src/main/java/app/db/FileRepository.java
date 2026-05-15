@@ -23,10 +23,11 @@ public class FileRepository {
       List<String> directories,
       int limit,
       int offset,
-      RankingStrategy strategy) {
+      RankingStrategy strategy,
+      String colorFilter) {
 
     if (query == null || query.isBlank()) {
-      return metadataSearch(extensions, directories, limit, offset, strategy);
+      return metadataSearch(extensions, directories, limit, offset, strategy, colorFilter);
     }
 
     String inner =
@@ -36,7 +37,8 @@ public class FileRepository {
 
     StringBuilder sql =
         new StringBuilder(
-            "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, f.sizeBytes, f.pathScore, fts.r "
+            "SELECT f.path, f.name, f.extension, f.lastModified, f.preview, "
+                + "f.sizeBytes, f.pathScore, f.dominantColor, fts.r "
                 + "FROM ("
                 + inner
                 + ") fts "
@@ -48,6 +50,7 @@ public class FileRepository {
           .append(") ");
     }
     for (int d = 0; d < directories.size(); d++) sql.append("AND f.path LIKE ? ");
+    if (colorFilter != null) sql.append("AND LOWER(f.dominantColor) = ? ");
 
     sql.append(strategy.orderByClause());
     sql.append("LIMIT ? OFFSET ?");
@@ -58,21 +61,11 @@ public class FileRepository {
       stmt.setString(i++, query);
       for (String ext : extensions) stmt.setString(i++, ext);
       for (String dir : directories) stmt.setString(i++, "%" + dir + "%");
+      if (colorFilter != null) stmt.setString(i++, colorFilter);
       stmt.setInt(i++, limit);
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
-        while (rs.next()) {
-          results.add(
-              new SearchResult(
-                  rs.getString("path"),
-                  rs.getString("name"),
-                  rs.getString("extension"),
-                  rs.getString("preview"),
-                  rs.getDouble("r"),
-                  rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes"),
-                  rs.getDouble("pathScore")));
-        }
+        while (rs.next()) results.add(mapRow(rs));
       }
     } catch (SQLException e) {
       System.err.println("[SEARCH ERROR] " + e.getMessage());
@@ -85,19 +78,21 @@ public class FileRepository {
       List<String> directories,
       int limit,
       int offset,
-      RankingStrategy strategy) {
+      RankingStrategy strategy,
+      String colorFilter) {
 
     StringBuilder sql =
         new StringBuilder(
-            "SELECT path, name, extension, lastModified, preview, sizeBytes, pathScore, 0.0 AS r "
-                + "FROM files WHERE 1=1 ");
+            "SELECT path, name, extension, lastModified, preview, sizeBytes, "
+                + "pathScore, dominantColor, 0.0 AS r FROM files WHERE 1=1 ");
 
     if (!extensions.isEmpty()) {
       sql.append("AND LOWER(extension) IN (")
           .append("?,".repeat(extensions.size()).replaceAll(",$", ""))
           .append(") ");
     }
-    for (int d = 0; d < directories.size(); d++) sql.append("AND path LIKE ? ");
+    sql.append("AND path LIKE ? ".repeat(directories.size()));
+    if (colorFilter != null) sql.append("AND LOWER(dominantColor) = ? ");
 
     String orderBy =
         strategy
@@ -116,21 +111,11 @@ public class FileRepository {
       int i = 1;
       for (String ext : extensions) stmt.setString(i++, ext);
       for (String dir : directories) stmt.setString(i++, "%" + dir + "%");
+      if (colorFilter != null) stmt.setString(i++, colorFilter);
       stmt.setInt(i++, limit);
       stmt.setInt(i, offset);
       try (ResultSet rs = stmt.executeQuery()) {
-        while (rs.next()) {
-          results.add(
-              new SearchResult(
-                  rs.getString("path"),
-                  rs.getString("name"),
-                  rs.getString("extension"),
-                  rs.getString("preview"),
-                  rs.getDouble("r"),
-                  rs.getLong("lastModified"),
-                  rs.getLong("sizeBytes"),
-                  rs.getDouble("pathScore")));
-        }
+        while (rs.next()) results.add(mapRow(rs));
       }
     } catch (SQLException e) {
       System.err.println("[METADATA SEARCH ERROR] " + e.getMessage());
@@ -140,12 +125,17 @@ public class FileRepository {
 
   public List<SearchResult> search(
       String query, List<String> extensions, List<String> directories, int limit, int offset) {
-    return search(query, extensions, directories, limit, offset, RankingStrategy.RELEVANCE);
+    return search(query, extensions, directories, limit, offset, RankingStrategy.RELEVANCE, null);
   }
 
   public List<SearchResult> search(
-      String query, List<String> extensions, List<String> directories, int limit) {
-    return search(query, extensions, directories, limit, 0, RankingStrategy.RELEVANCE);
+      String query,
+      List<String> extensions,
+      List<String> directories,
+      int limit,
+      int offset,
+      RankingStrategy strategy) {
+    return search(query, extensions, directories, limit, offset, strategy, null);
   }
 
   public void deleteStale(String rootPath) {
@@ -220,7 +210,8 @@ public class FileRepository {
         PreparedStatement d2 = connection.prepareStatement("DELETE FROM files_fts WHERE path = ?");
         PreparedStatement i1 =
             connection.prepareStatement(
-                "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview, pathScore) VALUES (?,?,?,?,?,?,?)");
+                "INSERT INTO files (path, name, extension, sizeBytes, lastModified, preview, pathScore, dominantColor) "
+                    + "VALUES (?,?,?,?,?,?,?,?)");
         PreparedStatement i2 =
             connection.prepareStatement(
                 "INSERT INTO files_fts (path, name, content) VALUES (?,?,?)")) {
@@ -237,11 +228,11 @@ public class FileRepository {
       i1.setLong(5, record.lastModified());
       i1.setString(6, record.preview());
       i1.setDouble(7, record.pathScore());
+      i1.setString(8, record.dominantColor());
       i1.executeUpdate();
 
       String normalizedName =
           record.name() + " " + record.name().replaceAll("([a-z])([A-Z]+)", "$1 $2").toLowerCase();
-
       i2.setString(1, record.path());
       i2.setString(2, normalizedName);
       i2.setString(3, record.content() != null ? record.content() : "");
@@ -331,5 +322,18 @@ public class FileRepository {
       System.err.println("[FETCH ERROR] Could not retrieve content: " + e.getMessage());
     }
     return null;
+  }
+
+  private SearchResult mapRow(ResultSet rs) throws SQLException {
+    return new SearchResult(
+        rs.getString("path"),
+        rs.getString("name"),
+        rs.getString("extension"),
+        rs.getString("preview"),
+        rs.getDouble("r"),
+        rs.getLong("lastModified"),
+        rs.getLong("sizeBytes"),
+        rs.getDouble("pathScore"),
+        rs.getString("dominantColor"));
   }
 }

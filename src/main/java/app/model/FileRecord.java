@@ -8,4 +8,5 @@ public record FileRecord(
     long lastModified,
     String preview,
     String content,
-    double pathScore) {}
+    double pathScore,
+    String dominantColor) {}
