@@ -31,6 +31,7 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
       private final Label pathScoreLabel = new Label();
       private final Label nameLabel = new Label();
       private final Label extLabel = new Label();
+      private final Label colorChip = new Label();
       private final Label pathLabel = new Label();
       private final Label snippetLabel = new Label();
       private final Label sizeLabel = new Label();
@@ -48,15 +49,20 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         snippetLabel.getStyleClass().add("cell-snippet");
         sizeLabel.getStyleClass().add("cell-meta");
         dateLabel.getStyleClass().add("cell-meta");
+        colorChip.getStyleClass().add("color-chip");
+        colorChip.setVisible(false);
+        colorChip.setManaged(false);
 
         Tooltip.install(rankLabel, new Tooltip("BM25 relevance score"));
         Tooltip.install(
             pathScoreLabel,
-            new Tooltip("Path score — based on extension, depth, directory importance"));
+            new Tooltip("Path score - based on extension, depth, directory importance"));
 
         HBox.setHgrow(spacer, Priority.ALWAYS);
         topRow.setAlignment(Pos.CENTER_LEFT);
-        topRow.getChildren().addAll(rankLabel, pathScoreLabel, nameLabel, spacer, extLabel);
+        topRow
+            .getChildren()
+            .addAll(rankLabel, pathScoreLabel, nameLabel, spacer, extLabel, colorChip);
 
         metaRow.setAlignment(Pos.CENTER_LEFT);
         metaRow.getChildren().addAll(sizeLabel, dateLabel);
@@ -81,20 +87,37 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         nameLabel.setText(r.name());
 
         String ext = r.extension();
-        extLabel.setText(ext != null && !ext.isBlank() ? ext : "—");
+        extLabel.setText(ext != null && !ext.isBlank() ? ext : "-");
         pathLabel.setText(shortenPath(r.path(), 60));
         sizeLabel.setText(formatSize(r.sizeBytes()));
         dateLabel.setText(DATE_FMT.format(Instant.ofEpochMilli(r.lastModified())));
 
         if (r.snippet() != null && !r.snippet().isBlank()) {
           String line = r.snippet().lines().findFirst().orElse("").trim();
-          snippetLabel.setText(line.length() > 80 ? line.substring(0, 80) + "…" : line);
+          snippetLabel.setText(line.length() > 80 ? line.substring(0, 80) + "..." : line);
           snippetLabel.setVisible(true);
           snippetLabel.setManaged(true);
         } else {
           snippetLabel.setText("");
           snippetLabel.setVisible(false);
           snippetLabel.setManaged(false);
+        }
+
+        String dc = r.dominantColor();
+        if (dc != null && !dc.isBlank()) {
+          colorChip.setText(dc);
+          colorChip.setStyle(
+              "-fx-background-color: "
+                  + colorToHex(dc)
+                  + "; "
+                  + "-fx-text-fill: "
+                  + colorToTextColor(dc)
+                  + ";");
+          colorChip.setVisible(true);
+          colorChip.setManaged(true);
+        } else {
+          colorChip.setVisible(false);
+          colorChip.setManaged(false);
         }
 
         setGraphic(box);
@@ -111,6 +134,30 @@ public class ResultCellFactory implements Callback<ListView<SearchResult>, ListC
         if (path.length() <= max) return path;
         return "..." + path.substring(path.length() - (max - 1));
       }
+    };
+  }
+
+  private static String colorToHex(String name) {
+    return switch (name.toLowerCase()) {
+      case "red" -> "#ff5555";
+      case "orange" -> "#ff9966";
+      case "yellow" -> "#f1fa8c";
+      case "green" -> "#a6e3a1";
+      case "cyan" -> "#89dceb";
+      case "blue" -> "#89b4fa";
+      case "purple" -> "#cba6f7";
+      case "pink" -> "#f38ba8";
+      case "white" -> "#f5f5f5";
+      case "black" -> "#2e3440";
+      case "gray" -> "#7c88a6";
+      default -> "#6b768f";
+    };
+  }
+
+  private static String colorToTextColor(String name) {
+    return switch (name.toLowerCase()) {
+      case "yellow", "white", "cyan" -> "#2e3440";
+      default -> "#ffffff";
     };
   }
 }
