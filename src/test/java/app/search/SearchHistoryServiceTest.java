@@ -121,7 +121,7 @@ class SearchHistoryServiceTest {
   }
 
   private SearchResult result(String path) {
-    return new SearchResult(path, path.substring(path.lastIndexOf('/') + 1),
-            "java", null, -1.0, 0L, 0L, 0.0, null);
+    return new SearchResult(
+        path, path.substring(path.lastIndexOf('/') + 1), "java", null, -1.0, 0L, 0L, 0.0, null);
   }
 }

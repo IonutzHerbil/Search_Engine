@@ -8,26 +8,28 @@ import app.model.SearchResult;
 import app.search.RankingStrategy;
 import app.search.SearchEngine;
 import app.search.SearchHistoryService;
+import app.util.FileTypes;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import javafx.animation.PauseTransition;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import app.util.FileTypes;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 
 public class SearchController {
 
@@ -37,6 +39,7 @@ public class SearchController {
   @FXML private TextField pathField;
   @FXML private TextField dirFilter;
   @FXML private ComboBox<String> extFilter;
+  @FXML private ComboBox<String> colorFilter;
   @FXML private ListView<SearchResult> resultsList;
   @FXML private TextFlow previewFlow;
   @FXML private TextFlow fullFileFlow;
@@ -65,6 +68,7 @@ public class SearchController {
   @FXML private Label reportUpdated;
   @FXML private Label totalSearchesLabel;
   @FXML private Label totalFilesLabel;
+  @FXML private Label avgPathScoreLabel;
   @FXML private ListView<String> topQueriesList;
   @FXML private ListView<String> topExtensionsList;
   @FXML private ListView<String> recentSearchesList;
@@ -157,8 +161,96 @@ public class SearchController {
               searchVM.setStrategy(selected);
               triggerSearch();
             });
-    imageView.fitWidthProperty().bind(
-            tabPane.widthProperty().subtract(32));
+
+    imageView.fitWidthProperty().bind(tabPane.widthProperty().subtract(32));
+    setupColorFilter();
+  }
+
+  private void setupColorFilter() {
+    List<String> colors =
+        List.of(
+            "any color",
+            "red",
+            "orange",
+            "yellow",
+            "green",
+            "cyan",
+            "blue",
+            "purple",
+            "pink",
+            "white",
+            "black",
+            "gray");
+
+    colorFilter.setItems(FXCollections.observableArrayList(colors));
+    colorFilter.setValue("any color");
+
+    colorFilter.setCellFactory(
+        lv ->
+            new ListCell<>() {
+              @Override
+              protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                  setGraphic(null);
+                  setText(null);
+                  return;
+                }
+                if (item.equals("any color")) {
+                  setGraphic(null);
+                  setText("any color");
+                  return;
+                }
+                Rectangle swatch = new Rectangle(12, 12);
+                swatch.setArcWidth(3);
+                swatch.setArcHeight(3);
+                swatch.setFill(Color.web(hexForColor(item)));
+                HBox box = new HBox(6, swatch, new Label(item));
+                box.setAlignment(Pos.CENTER_LEFT);
+                setGraphic(box);
+                setText(null);
+              }
+            });
+
+    colorFilter.setButtonCell(
+        new ListCell<>() {
+          @Override
+          protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null || item.equals("any color")) {
+              setGraphic(null);
+              setText("color");
+              return;
+            }
+            Rectangle swatch = new Rectangle(10, 10);
+            swatch.setArcWidth(2);
+            swatch.setArcHeight(2);
+            swatch.setFill(Color.web(hexForColor(item)));
+            HBox box = new HBox(5, swatch, new Label(item));
+            box.setAlignment(Pos.CENTER_LEFT);
+            setGraphic(box);
+            setText(null);
+          }
+        });
+
+    colorFilter.valueProperty().addListener((obs, old, val) -> triggerSearch());
+  }
+
+  private String hexForColor(String name) {
+    return switch (name.toLowerCase()) {
+      case "red" -> "#ff5555";
+      case "orange" -> "#ff9966";
+      case "yellow" -> "#f1fa8c";
+      case "green" -> "#a6e3a1";
+      case "cyan" -> "#89dceb";
+      case "blue" -> "#89b4fa";
+      case "purple" -> "#cba6f7";
+      case "pink" -> "#f38ba8";
+      case "white" -> "#f5f5f5";
+      case "black" -> "#45475a";
+      case "gray" -> "#7c88a6";
+      default -> "#6b768f";
+    };
   }
 
   private void setupLiveSearch() {
@@ -199,16 +291,20 @@ public class SearchController {
     String query = searchField.getText().trim();
     String ext = extFilter.getValue();
     String dir = dirFilter.getText().trim();
+    String color = colorFilter.getValue();
 
     boolean noQuery = query.isBlank();
     boolean noExt = ext == null || ext.isBlank();
     boolean noDir = dir.isBlank();
-    if (noQuery && noExt && noDir) {
+    boolean noColor = color == null || color.equals("any color");
+
+    if (noQuery && noExt && noDir && noColor) {
       searchVM.getResults().clear();
       searchVM.resultCountProperty().set("");
       return;
     }
-    searchVM.search(query, noExt ? "" : ext.trim(), dir);
+
+    searchVM.search(query, noExt ? "" : ext.trim(), dir, noColor ? null : color);
 
     if (!searchVM.getResults().isEmpty()) {
       resultsList.getSelectionModel().selectFirst();
@@ -220,7 +316,7 @@ public class SearchController {
     totalSearchesLabel.setText(String.valueOf(historyService.totalSearches()));
 
     List<String> top =
-        historyService.topQueries(10).stream().map(e -> e.getKey() + "  ×" + e.getValue()).toList();
+        historyService.topQueries(10).stream().map(e -> e.getKey() + "  x" + e.getValue()).toList();
     topQueriesList.setItems(FXCollections.observableArrayList(top));
 
     List<String> recent =
@@ -233,6 +329,7 @@ public class SearchController {
         .start(
             () -> {
               long fileCount = repository.countFiles();
+              double avgScore = repository.averagePathScore();
               List<String> exts =
                   repository.topExtensions(8).stream()
                       .map(e -> "." + e.getKey() + "  " + e.getValue())
@@ -240,6 +337,7 @@ public class SearchController {
               javafx.application.Platform.runLater(
                   () -> {
                     totalFilesLabel.setText(String.valueOf(fileCount));
+                    avgPathScoreLabel.setText(String.format("%.2f", avgScore));
                     topExtensionsList.setItems(FXCollections.observableArrayList(exts));
                   });
             });
@@ -288,6 +386,7 @@ public class SearchController {
   private void onClearFilters() {
     extFilter.setValue(null);
     dirFilter.clear();
+    colorFilter.setValue("any color");
     triggerSearch();
   }
 
@@ -307,7 +406,7 @@ public class SearchController {
     String content =
         result.snippet() != null && !result.snippet().isBlank()
             ? result.snippet()
-            : "(no preview — binary or unreadable file)";
+            : "(no preview - binary or unreadable file)";
     String query = extractTerms(searchField.getText().trim());
     previewFlow.getChildren().setAll(TextHighlighter.highlight(content, query));
     tabPane.getSelectionModel().select(0);
@@ -315,7 +414,6 @@ public class SearchController {
   }
 
   private void loadFullFile(SearchResult result, String query) {
-    // reset both views
     fullFileScroll.setVisible(true);
     fullFileScroll.setManaged(true);
     imagePane.setVisible(false);
@@ -324,59 +422,52 @@ public class SearchController {
 
     String ext = result.extension();
 
-    // image path
     if (FileTypes.isImage(ext)) {
       if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
         showFullFileMessage(
-                String.format(
-                        "(image too large to preview: %.1f MB)",
-                        result.sizeBytes() / (1024.0 * 1024)));
+            String.format(
+                "(image too large to preview: %.1f MB)", result.sizeBytes() / (1024.0 * 1024)));
         return;
       }
-      showFullFileMessage("Loading image...");
       final String path = result.path();
       final SearchResult token = result;
       Thread.ofVirtual()
-              .start(
+          .start(
+              () -> {
+                try {
+                  Image img = new Image(java.nio.file.Path.of(path).toUri().toString(), true);
+                  javafx.application.Platform.runLater(
                       () -> {
-                        try {
-                          Image img = new Image(
-                                  java.nio.file.Path.of(path).toUri().toString(),
-                                  true); // background loading
-                          javafx.application.Platform.runLater(
-                                  () -> {
-                                    if (resultsList.getSelectionModel().getSelectedItem() != token) return;
-                                    imageView.setImage(img);
-                                    fullFileScroll.setVisible(false);
-                                    fullFileScroll.setManaged(false);
-                                    imagePane.setVisible(true);
-                                    imagePane.setManaged(true);
-                                  });
-                        } catch (Exception e) {
-                          javafx.application.Platform.runLater(
-                                  () -> showFullFileMessage("(could not load image: " + e.getMessage() + ")"));
-                        }
+                        if (resultsList.getSelectionModel().getSelectedItem() != token) return;
+                        imageView.setImage(img);
+                        fullFileScroll.setVisible(false);
+                        fullFileScroll.setManaged(false);
+                        imagePane.setVisible(true);
+                        imagePane.setManaged(true);
                       });
+                } catch (Exception e) {
+                  javafx.application.Platform.runLater(
+                      () -> showFullFileMessage("(could not load image: " + e.getMessage() + ")"));
+                }
+              });
       return;
     }
 
-    // text path
     String c = repository.getFullContent(result.path());
     if (c == null || c.isBlank()) {
-      showFullFileMessage("(binary or non-text file — no readable content extracted)");
+      showFullFileMessage("(binary or non-text file - no readable content extracted)");
       return;
     }
-    showFullFileMessage("Loading...");
     final String fc = c;
     final SearchResult token = result;
     Thread.ofVirtual()
-            .start(
-                    () ->
-                            javafx.application.Platform.runLater(
-                                    () -> {
-                                      if (resultsList.getSelectionModel().getSelectedItem() != token) return;
-                                      fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
-                                    }));
+        .start(
+            () ->
+                javafx.application.Platform.runLater(
+                    () -> {
+                      if (resultsList.getSelectionModel().getSelectedItem() != token) return;
+                      fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
+                    }));
   }
 
   private void showFullFileMessage(String message) {
@@ -440,18 +531,18 @@ public class SearchController {
   private String toText(IndexReport report) {
     return String.format(
         """
-        ========================================
-        Root        : %s
-        Total       : %d
-          New       : %d
-          Updated   : %d
-          Up to date: %d
-          Filtered  : %d
-        Dirs        : %d
-        Errors      : %d
-        Time        : %.2fs
-        ========================================
-        """,
+            ========================================
+            Root        : %s
+            Total       : %d
+              New       : %d
+              Updated   : %d
+              Up to date: %d
+              Filtered  : %d
+            Dirs        : %d
+            Errors      : %d
+            Time        : %.2fs
+            ========================================
+            """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),
@@ -466,18 +557,18 @@ public class SearchController {
   private String toJson(IndexReport report) {
     return String.format(
         """
-        {
-          "rootDir": "%s",
-          "filesTotal": %d,
-          "filesNew": %d,
-          "filesUpdated": %d,
-          "filesUpToDate": %d,
-          "filesFiltered": %d,
-          "directoriesVisited": %d,
-          "errors": %d,
-          "elapsedSeconds": %.2f
-        }
-        """,
+            {
+              "rootDir": "%s",
+              "filesTotal": %d,
+              "filesNew": %d,
+              "filesUpdated": %d,
+              "filesUpToDate": %d,
+              "filesFiltered": %d,
+              "directoriesVisited": %d,
+              "errors": %d,
+              "elapsedSeconds": %.2f
+            }
+            """,
         report.rootDir(),
         report.filesTotal(),
         report.filesNew(),

@@ -336,4 +336,14 @@ public class FileRepository {
         rs.getDouble("pathScore"),
         rs.getString("dominantColor"));
   }
+
+  public double averagePathScore() {
+    try (PreparedStatement stmt = connection.prepareStatement("SELECT AVG(pathScore) FROM files");
+        ResultSet rs = stmt.executeQuery()) {
+      if (rs.next()) return rs.getDouble(1);
+    } catch (SQLException e) {
+      System.err.println("[STATS ERROR] " + e.getMessage());
+    }
+    return 0.0;
+  }
 }

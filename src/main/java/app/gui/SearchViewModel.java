@@ -40,8 +40,8 @@ public class SearchViewModel {
     this.historyService = historyService;
   }
 
-  public void search(String terms, String ext, String dir) {
-    currentQuery = buildQuery(terms, ext, dir);
+  public void search(String terms, String ext, String dir, String color) {
+    currentQuery = buildQuery(terms, ext, dir, color);
     currentOffset = 0;
     final String query = currentQuery;
     final RankingStrategy strat = strategy.get();
@@ -108,10 +108,11 @@ public class SearchViewModel {
     return hasMore;
   }
 
-  private String buildQuery(String terms, String ext, String dir) {
+  private String buildQuery(String terms, String ext, String dir, String color) {
     StringBuilder sb = new StringBuilder(terms);
     if (ext != null && !ext.isBlank()) sb.append(" ext:").append(ext);
     if (dir != null && !dir.isBlank()) sb.append(" path:").append(dir);
+    if (color != null && !color.isBlank()) sb.append(" color:").append(color);
     return sb.toString();
   }
 
