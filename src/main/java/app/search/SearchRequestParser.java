@@ -11,6 +11,7 @@ public class SearchRequestParser {
   private static final String PATH_PREFIX = "path:";
   private static final String CONTENT_PREFIX = "content:";
   private static final String NAME_PREFIX = "name:";
+  private static final String COLOR_PREFIX = "color:";
 
   private static final Pattern TOKEN_PATTERN =
       Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+:[^\\s]+|\\w+\\*?|\\S+");
@@ -21,6 +22,7 @@ public class SearchRequestParser {
     StringBuilder contentValue = new StringBuilder();
     List<StringBuilder> pathSegments = new ArrayList<>();
     List<String> extensions = new ArrayList<>();
+    String colorFilter = null;
     String activeQualifier = null;
 
     for (String token : tokens) {
@@ -30,6 +32,11 @@ public class SearchRequestParser {
         activeQualifier = null;
         String val = token.substring(EXT_PREFIX.length()).toLowerCase();
         if (!val.isBlank()) extensions.add(val);
+
+      } else if (lower.startsWith(COLOR_PREFIX)) {
+        activeQualifier = null;
+        String val = token.substring(COLOR_PREFIX.length()).toLowerCase().trim();
+        if (!val.isBlank()) colorFilter = val;
 
       } else if (lower.startsWith(PATH_PREFIX)) {
         pathSegments.add(new StringBuilder());
@@ -85,7 +92,7 @@ public class SearchRequestParser {
     List<String> directories =
         pathSegments.stream().map(sb -> sb.toString().trim()).filter(s -> !s.isBlank()).toList();
 
-    return new SearchRequest(ftsTerms.toString(), extensions, directories);
+    return new SearchRequest(ftsTerms.toString(), extensions, directories, colorFilter);
   }
 
   private List<String> tokenise(String raw) {

@@ -36,7 +36,13 @@ public class SearchEngine {
     SearchRequest request = parser.parse(safeRaw);
     notifyObservers(safeRaw);
     return repository.search(
-        request.terms(), request.extensions(), request.directories(), limit, offset, strategy);
+        request.terms(),
+        request.extensions(),
+        request.directories(),
+        limit,
+        offset,
+        strategy,
+        request.colorFilter());
   }
 
   private void notifyObservers(String query) {
