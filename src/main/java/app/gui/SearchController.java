@@ -17,6 +17,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Side;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -24,6 +25,9 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import app.util.FileTypes;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 public class SearchController {
 
@@ -64,6 +68,9 @@ public class SearchController {
   @FXML private ListView<String> topQueriesList;
   @FXML private ListView<String> topExtensionsList;
   @FXML private ListView<String> recentSearchesList;
+  @FXML private StackPane imagePane;
+  @FXML private ImageView imageView;
+  @FXML private ScrollPane fullFileScroll;
 
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
@@ -150,6 +157,8 @@ public class SearchController {
               searchVM.setStrategy(selected);
               triggerSearch();
             });
+    imageView.fitWidthProperty().bind(
+            tabPane.widthProperty().subtract(32));
   }
 
   private void setupLiveSearch() {
@@ -306,36 +315,68 @@ public class SearchController {
   }
 
   private void loadFullFile(SearchResult result, String query) {
-    if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
-      showFullFileMessage(
-          String.format(
-              "(file too large to preview: %.1f MB — limit is %.1f MB)",
-              result.sizeBytes() / (1024.0 * 1024), MAX_PREVIEW_BYTES / (1024.0 * 1024)));
+    // reset both views
+    fullFileScroll.setVisible(true);
+    fullFileScroll.setManaged(true);
+    imagePane.setVisible(false);
+    imagePane.setManaged(false);
+    imageView.setImage(null);
+
+    String ext = result.extension();
+
+    // image path
+    if (FileTypes.isImage(ext)) {
+      if (result.sizeBytes() > MAX_PREVIEW_BYTES) {
+        showFullFileMessage(
+                String.format(
+                        "(image too large to preview: %.1f MB)",
+                        result.sizeBytes() / (1024.0 * 1024)));
+        return;
+      }
+      showFullFileMessage("Loading image...");
+      final String path = result.path();
+      final SearchResult token = result;
+      Thread.ofVirtual()
+              .start(
+                      () -> {
+                        try {
+                          Image img = new Image(
+                                  java.nio.file.Path.of(path).toUri().toString(),
+                                  true); // background loading
+                          javafx.application.Platform.runLater(
+                                  () -> {
+                                    if (resultsList.getSelectionModel().getSelectedItem() != token) return;
+                                    imageView.setImage(img);
+                                    fullFileScroll.setVisible(false);
+                                    fullFileScroll.setManaged(false);
+                                    imagePane.setVisible(true);
+                                    imagePane.setManaged(true);
+                                  });
+                        } catch (Exception e) {
+                          javafx.application.Platform.runLater(
+                                  () -> showFullFileMessage("(could not load image: " + e.getMessage() + ")"));
+                        }
+                      });
       return;
     }
 
-    showFullFileMessage("Loading…");
-    final String path = result.path();
+    // text path
+    String c = repository.getFullContent(result.path());
+    if (c == null || c.isBlank()) {
+      showFullFileMessage("(binary or non-text file — no readable content extracted)");
+      return;
+    }
+    showFullFileMessage("Loading...");
+    final String fc = c;
     final SearchResult token = result;
-
     Thread.ofVirtual()
-        .start(
-            () -> {
-              String c = repository.getFullContent(path);
-
-              if (c == null || c.isBlank()) {
-                c = "(binary or non-text file — no readable content extracted)";
-              }
-
-              final String fc = c;
-
-              javafx.application.Platform.runLater(
-                  () -> {
-                    if (resultsList.getSelectionModel().getSelectedItem() == token) {
-                      fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
-                    }
-                  });
-            });
+            .start(
+                    () ->
+                            javafx.application.Platform.runLater(
+                                    () -> {
+                                      if (resultsList.getSelectionModel().getSelectedItem() != token) return;
+                                      fullFileFlow.getChildren().setAll(TextHighlighter.highlight(fc, query));
+                                    }));
   }
 
   private void showFullFileMessage(String message) {
