@@ -31,7 +31,15 @@ class RankingIntegrationTest {
       String path, String name, String content, long size, double pathScore) {
     FileRecord record =
         new FileRecord(
-            path, name, "txt", size, System.currentTimeMillis(), "preview", content, pathScore);
+            path,
+            name,
+            "txt",
+            size,
+            System.currentTimeMillis(),
+            "preview",
+            content,
+            pathScore,
+            null);
     repo.upsertNoCommit(record);
     repo.commit();
   }
