@@ -22,9 +22,9 @@ public class SearchEngine {
   public SearchEngine(FileRepository repository) {
     this.repository = repository;
     this.parser = new SearchRequestParser();
-    this.pipeline = new LogicDecorator(
-            new SynonymDecorator(
-                    new SanitizationDecorator(raw -> raw == null ? "" : raw.trim())));
+    this.pipeline =
+        new LogicDecorator(
+            new SynonymDecorator(new SanitizationDecorator(raw -> raw == null ? "" : raw.trim())));
   }
 
   public void addObserver(SearchObserver observer) {
@@ -40,7 +40,7 @@ public class SearchEngine {
   }
 
   public List<SearchResult> search(String raw, int limit, int offset, RankingStrategy strategy) {
-    String safeRaw   = raw == null ? "" : raw;
+    String safeRaw = raw == null ? "" : raw;
     String processed = pipeline.process(safeRaw);
     SearchRequest request = parser.parse(processed);
     notifyObservers(safeRaw);
