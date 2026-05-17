@@ -32,6 +32,7 @@ class QueryPipelineTest {
   @Test
   void sanitization_preservesHyphens() {
     String result = pipeline.process("well-known");
+    System.out.println("DEBUG: '" + result + "'");
     assertTrue(result.contains("well-known"));
   }
 

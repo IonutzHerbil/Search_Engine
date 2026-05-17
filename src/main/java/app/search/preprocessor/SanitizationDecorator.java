@@ -1,9 +1,12 @@
 package app.search.preprocessor;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SanitizationDecorator implements QueryPreProcessor {
 
+  private static final Pattern TOKEN_PATTERN =
+      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+:[^\\s]+|\\w+(-\\w+)+\\*?|\\w+\\*?|\\S+");
   private static final Pattern UNSAFE = Pattern.compile("[^\\w\\s*\":()\\-]");
   private static final Pattern MULTI_SPACE = Pattern.compile("\\s{2,}");
 
@@ -18,10 +21,11 @@ public class SanitizationDecorator implements QueryPreProcessor {
     String processed = delegate.process(raw == null ? "" : raw.trim());
     if (processed.isBlank()) return processed;
 
-    String[] tokens = processed.split("\\s+");
+    Matcher m = TOKEN_PATTERN.matcher(processed);
     StringBuilder result = new StringBuilder();
 
-    for (String token : tokens) {
+    while (m.find()) {
+      String token = m.group();
       if (!result.isEmpty()) result.append(" ");
       if (isQualifier(token) || isOperator(token) || isQuotedPhrase(token)) {
         result.append(token);

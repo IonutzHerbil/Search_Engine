@@ -1,5 +1,8 @@
 package app.search.preprocessor;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class LogicDecorator implements QueryPreProcessor {
 
   private final QueryPreProcessor delegate;
@@ -8,15 +11,19 @@ public class LogicDecorator implements QueryPreProcessor {
     this.delegate = delegate;
   }
 
+  private static final Pattern TOKEN_PATTERN =
+      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+:[^\\s]+|\\w+(-\\w+)+\\*?|\\w+\\*?|\\S+");
+
   @Override
   public String process(String raw) {
     String processed = delegate.process(raw);
     if (processed.isBlank()) return processed;
 
-    String[] tokens = processed.split("\\s+");
+    Matcher m = TOKEN_PATTERN.matcher(processed);
     StringBuilder result = new StringBuilder();
 
-    for (String token : tokens) {
+    while (m.find()) {
+      String token = m.group();
       if (!result.isEmpty()) result.append(" ");
       if (isQualifier(token) || isOperator(token) || isQuotedPhrase(token) || token.endsWith("*")) {
         result.append(token);

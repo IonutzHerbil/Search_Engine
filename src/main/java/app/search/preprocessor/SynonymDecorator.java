@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SynonymDecorator implements QueryPreProcessor {
 
@@ -16,15 +18,19 @@ public class SynonymDecorator implements QueryPreProcessor {
     this.synonyms = loadSynonyms();
   }
 
+  private static final Pattern TOKEN_PATTERN =
+      Pattern.compile("\"[^\"]+\"|AND|OR|NOT|\\w+:[^\\s]+|\\w+(-\\w+)+\\*?|\\w+\\*?|\\S+");
+
   @Override
   public String process(String raw) {
     String processed = delegate.process(raw);
     if (processed.isBlank() || synonyms.isEmpty()) return processed;
 
-    String[] tokens = processed.split("\\s+");
+    Matcher m = TOKEN_PATTERN.matcher(processed);
     StringBuilder result = new StringBuilder();
 
-    for (String token : tokens) {
+    while (m.find()) {
+      String token = m.group();
       if (!result.isEmpty()) result.append(" ");
       if (isQualifier(token) || isOperator(token) || isQuotedPhrase(token)) {
         result.append(token);
