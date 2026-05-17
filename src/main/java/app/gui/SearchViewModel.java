@@ -6,6 +6,7 @@ import app.search.RankingStrategy;
 import app.search.SearchEngine;
 import app.search.SearchHistoryService;
 import java.util.List;
+import java.util.function.Consumer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -32,12 +33,17 @@ public class SearchViewModel {
 
   private String currentQuery = "";
   private int currentOffset = 0;
+  private Consumer<List<SearchResult>> onResultsReady;
 
   public SearchViewModel(
       SearchEngine engine, FileRepository repository, SearchHistoryService historyService) {
     this.engine = engine;
     this.repository = repository;
     this.historyService = historyService;
+  }
+
+  public void setOnResultsReady(Consumer<List<SearchResult>> callback) {
+    this.onResultsReady = callback;
   }
 
   public void search(String terms, String ext, String dir, String color) {
@@ -58,6 +64,7 @@ public class SearchViewModel {
                     currentOffset = page.size();
                     hasMore.set(page.size() == PAGE_SIZE);
                     updateCount();
+                    if (onResultsReady != null) onResultsReady.accept(page);
                   });
             });
   }
@@ -80,6 +87,7 @@ public class SearchViewModel {
                     currentOffset += page.size();
                     hasMore.set(page.size() == PAGE_SIZE);
                     updateCount();
+                    if (onResultsReady != null) onResultsReady.accept(results);
                   });
             });
   }

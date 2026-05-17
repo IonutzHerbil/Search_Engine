@@ -2,6 +2,9 @@ package app.gui;
 
 import app.config.IndexConfig;
 import app.db.FileRepository;
+import app.gui.widget.GalleryWidget;
+import app.gui.widget.LogAnalyzerWidget;
+import app.gui.widget.WidgetFactory;
 import app.indexer.IndexerFactory;
 import app.model.IndexReport;
 import app.model.SearchResult;
@@ -75,7 +78,9 @@ public class SearchController {
   @FXML private StackPane imagePane;
   @FXML private ImageView imageView;
   @FXML private ScrollPane fullFileScroll;
+  @FXML private HBox widgetStrip;
 
+  private WidgetFactory widgetFactory;
   private SearchViewModel searchVM;
   private IndexViewModel indexVM;
   private PauseTransition liveSearchDelay;
@@ -99,7 +104,8 @@ public class SearchController {
         });
 
     bindUI();
-
+    setupWidgets();
+    searchVM.setOnResultsReady(this::updateWidgetStrip);
     ignoredExtsField.setText(
         IndexConfig.DEFAULT_IGNORED_EXTS.stream()
             .sorted()
@@ -578,6 +584,62 @@ public class SearchController {
         report.directoriesVisited(),
         report.errors(),
         report.elapsedSeconds());
+  }
+
+  private void setupWidgets() {
+    widgetFactory = new WidgetFactory();
+
+    widgetFactory.register(
+        new GalleryWidget(
+            () -> {
+              extFilter.setValue("jpg");
+              colorFilter.setValue("any color");
+              triggerSearch();
+            }));
+
+    widgetFactory.register(
+        new LogAnalyzerWidget(
+            () -> {
+              extFilter.setValue(null);
+              colorFilter.setValue("any color");
+              String current = searchField.getText().trim();
+              if (!current.contains("ext:log")) {
+                searchField.setText(
+                    (current.isBlank() ? "" : current + " ") + "ext:log ext:txt ext:err ext:out");
+              }
+              triggerSearch();
+            }));
+  }
+
+  private void updateWidgetStrip(List<SearchResult> results) {
+    List<app.gui.widget.ContextWidget> active = widgetFactory.evaluate(results);
+    widgetStrip.getChildren().clear();
+
+    if (active.isEmpty()) {
+      widgetStrip.setVisible(false);
+      widgetStrip.setManaged(false);
+      return;
+    }
+
+    Label hint = new Label("Suggestions:");
+    hint.getStyleClass().add("widget-label");
+    widgetStrip.getChildren().add(hint);
+
+    for (app.gui.widget.ContextWidget widget : active) {
+      Button btn = new Button(widget.actionLabel());
+      btn.getStyleClass().add("widget-btn");
+      Tooltip.install(btn, new Tooltip(widget.description()));
+      btn.setOnAction(
+          e -> {
+            widget.action().run();
+            widgetStrip.setVisible(false);
+            widgetStrip.setManaged(false);
+          });
+      widgetStrip.getChildren().add(btn);
+    }
+
+    widgetStrip.setVisible(true);
+    widgetStrip.setManaged(true);
   }
 
   public boolean isIndexing() {
