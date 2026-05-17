@@ -2,6 +2,10 @@ package app.search;
 
 import app.db.FileRepository;
 import app.model.SearchResult;
+import app.search.preprocessor.LogicDecorator;
+import app.search.preprocessor.QueryPreProcessor;
+import app.search.preprocessor.SanitizationDecorator;
+import app.search.preprocessor.SynonymDecorator;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,11 +16,15 @@ public class SearchEngine {
 
   private final FileRepository repository;
   private final SearchRequestParser parser;
+  private final QueryPreProcessor pipeline;
   private final List<SearchObserver> observers = new ArrayList<>();
 
   public SearchEngine(FileRepository repository) {
     this.repository = repository;
     this.parser = new SearchRequestParser();
+    this.pipeline = new LogicDecorator(
+            new SynonymDecorator(
+                    new SanitizationDecorator(raw -> raw == null ? "" : raw.trim())));
   }
 
   public void addObserver(SearchObserver observer) {
@@ -32,8 +40,9 @@ public class SearchEngine {
   }
 
   public List<SearchResult> search(String raw, int limit, int offset, RankingStrategy strategy) {
-    String safeRaw = raw == null ? "" : raw;
-    SearchRequest request = parser.parse(safeRaw);
+    String safeRaw   = raw == null ? "" : raw;
+    String processed = pipeline.process(safeRaw);
+    SearchRequest request = parser.parse(processed);
     notifyObservers(safeRaw);
     return repository.search(
         request.terms(),
