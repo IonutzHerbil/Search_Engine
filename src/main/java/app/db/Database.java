@@ -11,6 +11,7 @@ public class Database {
     try (Statement stmt = connection.createStatement()) {
       stmt.execute("PRAGMA journal_mode=WAL;");
       stmt.execute("PRAGMA cache_size = -32000;");
+      stmt.execute("PRAGMA synchronous = NORMAL;");
     }
     connection.setAutoCommit(false);
     initSchema();

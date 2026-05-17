@@ -14,6 +14,8 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class FileIndexer {
@@ -22,7 +24,13 @@ public class FileIndexer {
   private final FileFilter filter;
   private final ContentExtractor extractor;
   private final FileRepository repository;
+
   private static final int COMMIT_BATCH_SIZE = 200;
+  private static final int READER_THREADS = Math.min(Runtime.getRuntime().availableProcessors(), 8);
+  private static final int QUEUE_CAPACITY = 500;
+
+  private static final FileRecord POISON_PILL =
+      new FileRecord("__POISON__", null, null, 0, 0, null, null, 0.0, null);
 
   public FileIndexer(
       IndexConfig config,
@@ -40,7 +48,38 @@ public class FileIndexer {
     Set<Path> visitedRealPaths = new HashSet<>();
     Map<String, Long> lastModifiedCache =
         repository.getLastModifiedMap(config.rootDirectory().toAbsolutePath().toString());
-    int[] pendingCommits = {0};
+
+    AtomicInteger newFiles = new AtomicInteger(0);
+    AtomicInteger updatedFiles = new AtomicInteger(0);
+    AtomicInteger producerErrors = new AtomicInteger(0);
+
+    ExecutorService producers = Executors.newFixedThreadPool(READER_THREADS);
+
+    BlockingQueue<FileRecord> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+
+    Thread consumer =
+        new Thread(
+            () -> {
+              int pending = 0;
+              try {
+                while (true) {
+                  FileRecord record = queue.take();
+                  if (record == POISON_PILL) break;
+                  repository.upsertNoCommit(record);
+                  if (++pending >= COMMIT_BATCH_SIZE) {
+                    repository.commit();
+                    pending = 0;
+                  }
+                  onFileIndexed.accept(record.name());
+                }
+                if (pending > 0) repository.commit();
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            },
+            "index-writer");
+    consumer.start();
+
     try {
       Files.walkFileTree(
           config.rootDirectory(),
@@ -74,29 +113,32 @@ public class FileIndexer {
                 return FileVisitResult.CONTINUE;
               }
 
-              try {
-                String absolutePath = file.toAbsolutePath().toString();
-                long fileModifiedTime = attrs.lastModifiedTime().toMillis();
-                long storedModified = lastModifiedCache.getOrDefault(absolutePath, -1L);
+              String absolutePath = file.toAbsolutePath().toString();
+              long fileModifiedTime = attrs.lastModifiedTime().toMillis();
+              long storedModified = lastModifiedCache.getOrDefault(absolutePath, -1L);
 
-                if (fileModifiedTime == storedModified) {
-                  stats.recordUpToDate();
-                  return FileVisitResult.CONTINUE;
-                }
-
-                boolean isNew = storedModified == -1;
-                FileRecord record = extractor.extract(file, attrs);
-                repository.upsertNoCommit(record);
-                if (++pendingCommits[0] >= COMMIT_BATCH_SIZE) {
-                  repository.commit();
-                  pendingCommits[0] = 0;
-                }
-                if (isNew) stats.recordNewFile();
-                else stats.recordUpdatedFile();
-                onFileIndexed.accept(record.name());
-              } catch (Exception e) {
-                stats.recordError();
+              if (fileModifiedTime == storedModified) {
+                stats.recordUpToDate();
+                return FileVisitResult.CONTINUE;
               }
+
+              boolean isNew = storedModified == -1;
+
+              producers.submit(
+                  () -> {
+                    try {
+                      FileRecord record = extractor.extract(file, attrs);
+                      queue.put(record);
+                      if (isNew) newFiles.incrementAndGet();
+                      else updatedFiles.incrementAndGet();
+                    } catch (InterruptedException e) {
+                      Thread.currentThread().interrupt();
+                      producerErrors.incrementAndGet();
+                    } catch (Exception e) {
+                      producerErrors.incrementAndGet();
+                      System.err.println("[PRODUCER ERROR] " + file + ": " + e.getMessage());
+                    }
+                  });
 
               return FileVisitResult.CONTINUE;
             }
@@ -111,10 +153,32 @@ public class FileIndexer {
     } catch (IOException e) {
       System.err.println("[FATAL] Cannot start traversal: " + e.getMessage());
     }
-    if (pendingCommits[0] > 0) {
-      repository.commit();
+
+    producers.shutdown();
+    try {
+      producers.awaitTermination(1, TimeUnit.HOURS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
+
+    try {
+      queue.put(POISON_PILL);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    try {
+      consumer.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
     repository.deleteStale(config.rootDirectory().toString());
+
+    for (int i = 0; i < newFiles.get(); i++) stats.recordNewFile();
+    for (int i = 0; i < updatedFiles.get(); i++) stats.recordUpdatedFile();
+    for (int i = 0; i < producerErrors.get(); i++) stats.recordError();
+
     return stats.toReport(config.rootDirectory().toString());
   }
 
