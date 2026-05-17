@@ -1,0 +1,28 @@
+#!/bin/sh
+
+export JAVA_HOME="/c/Users/Ivan/.jdks/ms-21.0.10"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+echo "[pre-push] Checking code formatting..."
+mvn spotless:check --quiet 2>&1
+if [ $? -ne 0 ]; then
+  echo "[pre-push] FAILED: Run 'mvn spotless:apply' then re-commit before pushing."
+  exit 1
+fi
+
+echo "[pre-push] Compiling..."
+mvn compile --quiet 2>&1
+if [ $? -ne 0 ]; then
+  echo "[pre-push] FAILED: Fix compilation errors before pushing."
+  exit 1
+fi
+
+echo "[pre-push] Running tests..."
+mvn test --quiet 2>&1
+if [ $? -ne 0 ]; then
+  echo "[pre-push] FAILED: Fix failing tests before pushing."
+  exit 1
+fi
+
+echo "[pre-push] All checks passed."
+exit 0
