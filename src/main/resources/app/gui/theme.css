@@ -1,0 +1,34 @@
+/* ============================================================
+   THEME.CSS — color tokens for the Search Engine UI
+   Edit values here to retheme the entire application.
+   ============================================================ */
+
+.root {
+    /* --- Backgrounds --- */
+    bg-base:           #2e3440;   /* main app background          */
+    bg-surface:        #3b4252;   /* cards, inputs, strips        */
+    bg-overlay:        #434c5e;   /* selected items, hover states */
+    bg-muted:          #4c566a;   /* scroll thumb hover           */
+
+    /* --- Borders --- */
+    border-subtle:     #3b4252;   /* thin separators              */
+    border-default:    #434c5e;   /* inputs, panels               */
+
+    /* --- Accent (blue) --- */
+    accent-strong:     #5e81ac;   /* button gradient start        */
+    accent-mid:        #81a1c1;   /* button gradient end / hover  */
+    accent-base:       #88c0d0;   /* focus rings, progress bar    */
+    accent-soft:       #8fd3e8;   /* ext pills, result count      */
+
+    /* --- Status / highlights --- */
+    green-primary:     #55d8a5;   /* status text, rpt labels      */
+    green-bright:      #00ff88;   /* rank score                   */
+
+    /* --- Text --- */
+    text-primary:      #ffffff;   /* headings, cell names         */
+    text-secondary:    #e5e9f0;   /* body, list cells             */
+    text-muted:        #6b768f;   /* subtitles, prompt text       */
+    text-path:         #7c88a6;   /* file paths, meta             */
+    text-snippet:      #8f9bb3;   /* snippet previews             */
+    text-dim:          #4c566a;   /* analytics header, separators */
+}

@@ -39,6 +39,7 @@ public class MainApp extends Application {
 
     FXMLLoader loader = new FXMLLoader(getClass().getResource("/app/gui/search.fxml"));
     Scene scene = new Scene(loader.load());
+    scene.getStylesheets().add(getClass().getResource("/app/gui/theme.css").toExternalForm());
     scene.getStylesheets().add(getClass().getResource("/app/gui/style.css").toExternalForm());
 
     SearchController controller = loader.getController();
