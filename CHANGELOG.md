@@ -1,5 +1,38 @@
 # Changelog
 
+---
+
+## [3.0.0] - 2026-05-19 - Iteration 3
+
+### Added
+- Pre-commit and pre-push hooks in .githooks/ ([c0ccf56](https://github.com/IonutzHerbil/Search_Engine/commit/c0ccf56))
+- CHANGELOG.md and semantic versioning ([cf1a2c9](https://github.com/IonutzHerbil/Search_Engine/commit/cf1a2c9))
+- dominantColor field to file model and database schema ([e3dc448](https://github.com/IonutzHerbil/Search_Engine/commit/e3dc448))
+- Strategy Pattern for file extraction with TextExtractionStrategy and ImageExtractionStrategy ([c2b48c0](https://github.com/IonutzHerbil/Search_Engine/commit/c2b48c0))
+- Image dominant color extraction via pixel sampling ([c2b48c0](https://github.com/IonutzHerbil/Search_Engine/commit/c2b48c0))
+- color: query qualifier for filtering by dominant image color ([549b5de](https://github.com/IonutzHerbil/Search_Engine/commit/549b5de))
+- Dominant color chip in result cells for image files ([14a3dc2](https://github.com/IonutzHerbil/Search_Engine/commit/14a3dc2))
+- Image preview in Full File tab ([a3c4b5b](https://github.com/IonutzHerbil/Search_Engine/commit/a3c4b5b))
+- Color filter dropdown with visual swatches ([4c5f15b](https://github.com/IonutzHerbil/Search_Engine/commit/4c5f15b))
+- Decorator Pipeline: SanitizationDecorator, SynonymDecorator, LogicDecorator ([4d9e009](https://github.com/IonutzHerbil/Search_Engine/commit/4d9e009))
+- Synonym expansion via synonyms.properties ([4d9e009](https://github.com/IonutzHerbil/Search_Engine/commit/4d9e009))
+- Context-aware widget strip: GalleryWidget and LogAnalyzerWidget ([40acfb0](https://github.com/IonutzHerbil/Search_Engine/commit/40acfb0))
+- Producer-Consumer indexing with parallel readers and single writer thread ([69523f4](https://github.com/IonutzHerbil/Search_Engine/commit/69523f4))
+
+### Fixed
+- Hyphenated terms consumed as single tokens in decorator pipeline ([0d7f402](https://github.com/IonutzHerbil/Search_Engine/commit/0d7f402))
+- PRAGMA synchronous = NORMAL restored
+
+### Changed
+- Decorator pipeline wired into SearchEngine before parser ([41ff564](https://github.com/IonutzHerbil/Search_Engine/commit/41ff564))
+- Color tokens extracted into theme.css ([8a9d002](https://github.com/IonutzHerbil/Search_Engine/commit/8a9d002))
+- Indexing batch size increased from 200 to 500
+
+### Tests
+- QueryPipelineTest: unit tests for decorator pipeline
+- Integration tests updated for dominantColor field ([c45fd78](https://github.com/IonutzHerbil/Search_Engine/commit/c45fd78))
+---
+
 ## [2.0.0] - 2026-04-29 - Iteration 2
 
 ### Added
